@@ -1,0 +1,21 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>EffectScope</title>
+  </head>
+  <body>
+    <script src="https://cdn.bootcdn.net/ajax/libs/vue/3.3.4/vue.global.min.js"></script>
+    <script>
+      // 我们没办法直接修改 str 对应的值
+      let str = 'decade';
+      // str[0] = 1;
+      console.log(str); // 'decade'
+      console.log(str.toUpperCase()); // "DECADE"
+      console.log(str); //"decade"
+      // 我们能做的只有把返回的新字符串重新赋值给变量
+      str = str.toUpperCase(); // "DECADE"
+    </script>
+  </body>
+</html>
