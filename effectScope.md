@@ -37,13 +37,18 @@ _paginate: false
 
 ---
 
+<style scoped>
+  section {
+    font-size: 21px;
+  }
+</style>
+
 ## How to use EffectScope
 
 给我使用的方法其实是 `effectScope`, 它接收一个 `detached` 参数, 类型是`布尔类型`, 意为`隔离`, 这里的 `隔离` 我们想想是要 `隔离` 什么? 答案很明显是 `scope` 也就是 `范围`, 可以类比 范围之间的嵌套操作, 再通俗一点就是, `子孙后代脱离了祖宗的管理`
 
 ```typescript
 import { effectScope, computed, ref, watch } from 'vue';
-
 const parentScope = effectScope();
 parentScope.run(() => {
   const childScope = effectScope(); // 这个会被 收集进 parent.scopes
@@ -51,7 +56,6 @@ parentScope.run(() => {
   const double = computed(() => count.value * 2); // 这个会被收集进 parent.effects
   watch(count, (n) => console.log(n)); // 这个也会 进 parent.effects
   // console.log(parentScope);
-
   const notCollectChildScope = effectScope(true); // parent.scopes 的长度还是 1
   // 执行 on 方法
   notCollectChildScope.on();
@@ -72,7 +76,22 @@ parentScope.run(() => {
 
 ---
 
+正如上面的例子一样, 我们定义了一个 `notCollectChildScope`, 讲道理, 它应该被收集进 `parentScope.scopes` 里面, 但是我们传入的`detached = true`, 导致脱离了 `parentScope` 的管理, 我们还通过 `notCollectChildScope.on()`, 让后续的 `effect` 不会进入到`parentScope.effects` 里面, 通过 `notCollectChildScope.off()` 恢复后续的 `effect` 进入 `parentScope.effects`, 当 `parentScope` 执行 `stop` 方法后, 不会再收集
+
+这里我们回顾下 `pinia` 里面的 `_e`是不是一个 `effectScope(true)`, `pinia` 自己单独管理着一套 `scope`, 我们姑且称为 `piniaScope`, 它不会被 `vue` 所管理, 也就是各管各的
+
+---
+
 ## How to implement effectScope
+
+<style scoped>
+  section {
+    font-size: 20px;
+  }
+  section marp-pre, section p {
+    margin: .5rem 0 0;
+  }
+</style>
 
 ```typescript
 export function effectScope(detached?: boolean) {
