@@ -6,16 +6,41 @@
     <title>EffectScope</title>
   </head>
   <body>
-    <script src="https://cdn.bootcdn.net/ajax/libs/vue/3.3.4/vue.global.min.js"></script>
-    <script>
-      // 我们没办法直接修改 str 对应的值
-      let str = 'decade';
-      // str[0] = 1;
-      console.log(str); // 'decade'
-      console.log(str.toUpperCase()); // "DECADE"
-      console.log(str); //"decade"
-      // 我们能做的只有把返回的新字符串重新赋值给变量
-      str = str.toUpperCase(); // "DECADE"
+    <div>1</div>
+    <script type="importmap">
+      {
+        "imports": {
+          "vue": "https://cdn.bootcdn.net/ajax/libs/vue/3.3.4/vue.esm-browser.js"
+        }
+      }
+    </script>
+    <script type="module">
+      import { effectScope, computed, ref, watch } from 'vue';
+
+      const parentScope = effectScope();
+      parentScope.run(() => {
+        const childScope = effectScope(); // 这个会被 收集进 parent.scopes
+        const count = ref(1);
+        const double = computed(() => count.value * 2); // 这个会被收集进 parent.effects
+        watch(count, (n) => console.log(n)); // 这个也会 进 parent.effects
+        // console.log(parentScope);
+
+        const notCollectChildScope = effectScope(true); // parent.scopes 的长度还是 1
+        // 执行 on 方法
+        notCollectChildScope.on();
+        const triple = computed(() => count.value * 3); // 此时会被添加进 notCollectChildScope.effects
+        notCollectChildScope.run(() => {
+          const childScope = effectScope(); // 会被添加进 notCollectChildScope.scopes
+        });
+        // console.log(notCollectChildScope);
+        notCollectChildScope.off();
+        const quadruple = computed(() => count.value * 4); // 这个会被收集进 parent.effects
+        // console.log(parentScope);
+      });
+      parentScope.stop();
+      parentScope.run(() => {
+        console.log('not console');
+      });
     </script>
   </body>
 </html>

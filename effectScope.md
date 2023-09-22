@@ -37,6 +37,82 @@ _paginate: false
 
 ---
 
+## How to use EffectScope
+
+给我使用的方法其实是 `effectScope`, 它接收一个 `detached` 参数, 类型是`布尔类型`, 意为`隔离`, 这里的 `隔离` 我们想想是要 `隔离` 什么? 答案很明显是 `scope` 也就是 `范围`, 可以类比 范围之间的嵌套操作, 再通俗一点就是, `子孙后代脱离了祖宗的管理`
+
+```typescript
+import { effectScope, computed, ref, watch } from 'vue';
+
+const parentScope = effectScope();
+parentScope.run(() => {
+  const childScope = effectScope(); // 这个会被 收集进 parent.scopes
+  const count = ref(1);
+  const double = computed(() => count.value * 2); // 这个会被收集进 parent.effects
+  watch(count, (n) => console.log(n)); // 这个也会 进 parent.effects
+  // console.log(parentScope);
+
+  const notCollectChildScope = effectScope(true); // parent.scopes 的长度还是 1
+  // 执行 on 方法
+  notCollectChildScope.on();
+  const triple = computed(() => count.value * 3); // 此时会被添加进 notCollectChildScope.effects
+  notCollectChildScope.run(() => {
+    const childScope = effectScope(); // 会被添加进 notCollectChildScope.scopes
+  });
+  // console.log(notCollectChildScope);
+  notCollectChildScope.off();
+  const quadruple = computed(() => count.value * 4); // 这个会被收集进 parent.effects
+  // console.log(parentScope);
+});
+parentScope.stop();
+parentScope.run(() => {
+  console.log('not console');
+});
+```
+
+---
+
+## How to implement effectScope
+
+```typescript
+export function effectScope(detached?: boolean) {
+  return new EffectScope(detached);
+}
+```
+
+下面我们看看 `EffectScope` 这个类, 是怎么去 `管理` 的
+
+```typescript
+export class EffectScope {
+  private _active = true; // 判断当前 scope 是否激活的标志
+  effects: ReactiveEffect[] = []; // 用于收集范围内的 effect
+  cleanups: (() => void)[] = []; // 用于 存放自定义的 fn, 在 scope 失活时触发, cleanup 清扫
+  parent: EffectScope | undefined; // 父级 scope
+  scopes: EffectScope[] | undefined; // 存放子scope
+  private index: number | undefined; // 当前 scope 在 父scope的 scopes 中的下标
+  constructor(public detached = false) {
+    /** */
+  }
+  get active() {
+    /** */
+  }
+  run<T>(fn: () => T): T | undefined {
+    /** */
+  }
+  on() {
+    activeEffectScope = this;
+  }
+  off() {
+    activeEffectScope = this.parent;
+  }
+  stop(fromParent?: boolean) {
+    /** */
+  }
+}
+```
+
+---
+
 ### 纯函数 与 副作用函数
 
 `纯函数` 的概念就是 `即相同的输入，永远会得到相同的输出，而且没有任何可观察的副作用`
@@ -66,12 +142,10 @@ str = str.toUpperCase(); // "DECADE"
 
 ---
 
-## Why does EffectScope appear
+之前说的还是比较模糊不清的, 下面我们来看一下, 这个 `api` 的 [rfc](https://github.com/vuejs/rfcs/pull/212)
 
----
+我模模糊糊看完后, 有以下几点感受
 
-## How to use EffectScope
-
----
-
-## How to implement EffectScope
+1. 一个库(比如 `pinia`)能够 `管理` 自己产生的 `effect`
+2. 清理副作用, 防止内存泄漏
+3. 第一条的 便捷的管理, 是因为 `vue` 自己已经实现了这套逻辑, 增加了 `vue` 的生态
