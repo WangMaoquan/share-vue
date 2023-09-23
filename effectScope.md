@@ -106,7 +106,7 @@ export class EffectScope {
   private _active = true; // 判断当前 scope 是否激活的标志
   effects: ReactiveEffect[] = []; // 用于收集范围内的 effect
   cleanups: (() => void)[] = []; // 用于 存放自定义的 fn, 在 scope 失活时触发, cleanup 清扫
-  parent: EffectScope | undefined; // 父级 scope
+  parent: EffectScope | undefined; // 父级 scope, 可能不是父级
   scopes: EffectScope[] | undefined; // 存放子scope
   private index: number | undefined; // 当前 scope 在 父scope的 scopes 中的下标
   constructor(public detached = false) {
@@ -131,6 +131,121 @@ export class EffectScope {
 ```
 
 ---
+
+#### constructor
+
+```typescript
+class EffectScope {
+  constructor(public detached = false) {
+    this.parent = activeEffectScope;
+    if (!detached && activeEffectScope) {
+      this.index =
+        (activeEffectScope.scopes || (activeEffectScope.scopes = [])).push(
+          this,
+        ) - 1;
+    }
+  }
+}
+```
+
+1. `parent` 赋值为上一次的 `activeEffect`
+2. `detached` 参数判断是否 将当前 `scope` 添加进 `parentScope.scopes`, 已经 `index` 的 初始化
+
+---
+
+<style scoped>
+  section {
+    font-size: 27px;
+  }
+</style>
+
+#### run
+
+```typescript
+class EffectScope {
+  run<T>(fn: () => T): T | undefined {
+    if (this._active) {
+      const currentEffectScope = activeEffectScope;
+      try {
+        activeEffectScope = this;
+        return fn();
+      } finally {
+        activeEffectScope = currentEffectScope;
+      }
+    } else if (__DEV__) {
+      warn(`cannot run an inactive effect scope.`);
+    }
+  }
+}
+```
+
+`run` 接收一个 `fn`, 返回值就是 `fn` 的返回值
+
+1. 判断当前的 `scope` 是否是激活的
+2. 在执行 `fn` 之前 修改 `activeEffectScope = this`
+3. 执行完后 恢复 `activeEffectScope`
+
+---
+
+<style scoped>
+  section {
+    font-size: 18px;
+  }
+  section marp-pre, section p {
+    margin: .5rem 0 0;
+  }
+  section ol {
+    margin-top: .5rem;
+  }
+</style>
+
+#### stop
+
+```typescript
+class EffectScope {
+  stop(fromParent?: boolean) {
+    if (this._active) {
+      let i, l;
+      for (i = 0, l = this.effects.length; i < l; i++) {
+        this.effects[i].stop();
+      }
+      for (i = 0, l = this.cleanups.length; i < l; i++) {
+        this.cleanups[i]();
+      }
+      if (this.scopes) {
+        for (i = 0, l = this.scopes.length; i < l; i++) {
+          this.scopes[i].stop(true);
+        }
+      }
+      if (!this.detached && this.parent && !fromParent) {
+        const last = this.parent.scopes!.pop();
+        if (last && last !== this) {
+          this.parent.scopes![this.index!] = last;
+          last.index = this.index!;
+        }
+      }
+      this.parent = undefined;
+      this._active = false;
+    }
+  }
+}
+```
+
+要做的事情也很明了
+
+1. `this.effects` 里面的所有 `effects` 需要 `停止` 即执行 `effect.stop`
+2. 处理完 `effects` 后, 需要执行 `cleanups` 里面的
+3. 然后处理 `this.scopes`
+4. 处理 子 `scope` 停止的情况, 即需要 从 `parent.scopes` 移除
+5. 重置 `this.parent`, `this._active`
+
+---
+
+<style scoped>
+  section {
+    font-size: 23px;
+  }
+</style>
 
 ### 纯函数 与 副作用函数
 
