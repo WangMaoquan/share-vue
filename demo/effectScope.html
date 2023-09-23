@@ -6,7 +6,7 @@
     <title>EffectScope</title>
   </head>
   <body>
-    <div>1</div>
+    <div id="app"></div>
     <script type="importmap">
       {
         "imports": {
@@ -14,7 +14,7 @@
         }
       }
     </script>
-    <script type="module">
+    <!-- <script type="module">
       import { effectScope, computed, ref, watch } from 'vue';
 
       const parentScope = effectScope();
@@ -41,6 +41,44 @@
       parentScope.run(() => {
         console.log('not console');
       });
+    </script> -->
+    <script type="module">
+      import {
+        createApp,
+        defineComponent,
+        reactive,
+        computed,
+        onScopeDispose,
+      } from 'vue';
+      const App = defineComponent({
+        setup() {
+          const state = reactive({
+            count: 1,
+          });
+          const double = computed(() => state.count * 2);
+
+          onScopeDispose(() => console.log('on-scope-dispose'));
+
+          return {
+            state,
+            double,
+          };
+        },
+        template: `<div>
+            <div>
+              <span>count: </span>
+              {{ state.count }}  
+            </div>
+            <div>
+              <span>double: </span>
+              {{ double }}
+            </div>
+          </div>`,
+      });
+
+      const app = createApp(App);
+      app.mount('#app');
+      console.log(app);
     </script>
   </body>
 </html>
