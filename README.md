@@ -1,3 +1,3 @@
 ### share
 
-[ ] effectScope
+- [ ] effectScope
