@@ -261,25 +261,6 @@ class EffectScope {
 - `mutable`: 意为 `可变的`, 在 `JavaScript` 中, 我们可以理解为 `引用类型` 的值
 - `immutable`: 意为 `不可变的`, 在 `JavaScript`中, 我们可以理解为 `基本类型` 的值
 
-两者最主要的区别就是当对一个变量进行改变的时候, `immutable` 只能为这个变量再创建一个新地址来保存, 在新的地址中改变, 而 `mutable` 则可以在原本的地址改变, 下面是几个例子:
-
-```javascript
-// 我们没办法直接修改 str 对应的值
-let str = 'decade';
-// str[0] = 1;
-console.log(str); // 'decade'
-console.log(str.toUpperCase()); // "DECADE"
-console.log(str); //"decade"
-// 我们能做的只有把返回的新字符串重新赋值给变量
-str = str.toUpperCase(); // "DECADE"
-```
+两者最主要的区别就是当对一个变量进行改变的时候, `immutable` 只能为这个变量再创建一个新地址来保存, 在新的地址中改变, 而 `mutable` 则可以在原本的地址改变.
 
 ---
-
-之前说的还是比较模糊不清的, 下面我们来看一下, 这个 `api` 的 [rfc](https://github.com/vuejs/rfcs/pull/212)
-
-我模模糊糊看完后, 有以下几点感受
-
-1. 一个库(比如 `pinia`)能够 `管理` 自己产生的 `effect`
-2. 清理副作用, 防止内存泄漏
-3. 第一条的 便捷的管理, 是因为 `vue` 自己已经实现了这套逻辑, 增加了 `vue` 的生态

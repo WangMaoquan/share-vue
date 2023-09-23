@@ -49,6 +49,7 @@
         reactive,
         computed,
         onScopeDispose,
+        onUnmounted,
       } from 'vue';
       const App = defineComponent({
         setup() {
@@ -58,6 +59,10 @@
           const double = computed(() => state.count * 2);
 
           onScopeDispose(() => console.log('on-scope-dispose'));
+
+          onUnmounted(() => {
+            console.log('unmounted');
+          });
 
           return {
             state,
@@ -79,6 +84,9 @@
       const app = createApp(App);
       app.mount('#app');
       console.log(app);
+      // setTimeout(() => {
+      //   app.unmount();
+      // }, 2000);
     </script>
   </body>
 </html>
