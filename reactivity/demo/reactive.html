@@ -1,0 +1,77 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>reactive</title>
+  </head>
+  <body>
+    <script type="importmap">
+      {
+        "imports": {
+          "vue": "https://cdn.bootcdn.net/ajax/libs/vue/3.3.4/vue.esm-browser.js"
+        }
+      }
+    </script>
+    <script>
+      class Person {
+        constructor(name) {
+          this.name = name;
+        }
+        say() {
+          console.log(this.name);
+        }
+      }
+      const obj = new Person('decade');
+      // 测试 get
+      const proxy = new Proxy(obj, {
+        get(target, key, receiver) {
+          console.log(`触发key: ${key}的读取操作`);
+          return Reflect.get(target, key, receiver);
+        },
+
+        set(target, key, value, receiver) {
+          const old = target[key];
+          console.log(
+            `触发key: ${key}的修改操作, 新值: ${value}, 旧值: ${old}`,
+          );
+          return Reflect.set(target, key, value, receiver);
+        },
+      });
+      proxy.name; // 访问自己本身的key
+      proxy.say; // 访问原型链上的key
+
+      proxy.name = 'zio';
+    </script>
+    <!-- <script type="module">
+      import { reactive, watch, watchEffect } from 'vue';
+      const arr = reactive([1, 2, 3, 4, 5]);
+      watch(
+        () => arr.length,
+        () => console.log(arr, 'watch-length'),
+      );
+
+      watch(
+        () => arr[0],
+        () => console.log(arr, 'watch-key'),
+      );
+
+      watchEffect(() => {
+        for (let i in arr) {
+          console.log(i, 'for-in');
+        }
+      });
+      const findObj = {
+        name: 'decade',
+      };
+
+      arr.push(6);
+      arr.push(findObj);
+      arr.shift();
+
+      console.log(arr.indexOf(findObj));
+      console.log(arr.lastIndexOf(findObj));
+      console.log(arr.includes(findObj));
+    </script> -->
+  </body>
+</html>
