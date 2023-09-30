@@ -276,9 +276,43 @@ function set(
 
 主要的做的事
 
-1. 处理 旧值是`readonly ref`
+1. 处理 旧值是`readonly ref` 详细 [pr](https://github.com/vuejs/core/pull/5048)
 2. toRaw 处理新值, 旧值
 3. 处理 `非数组`中 旧值是 `ref` 新值不是 `ref`
-4. 处理 只有自身的 `key` 对应的 `value`, 才会去 派发更新
+4. 处理 派发更新
+
+---
+
+或许有一个疑问 `target === toRaw(receiver)` 这行代码是干啥的?
+
+下面我通过一个例子来就会明白嘞
+
+```javascript
+const reactive = (target) => {
+  return new Proxy(target, {
+    get(target, key, receiver) {
+      if (key === 'name') {
+        console.log(key, 'key');
+      }
+      return Reflect.get(target, key, receiver);
+    },
+    set(target, key, value, receiver) {
+      console.log('target', target);
+      console.log('receiver', receiver);
+      return Reflect.set(target, key, value);
+    },
+  });
+};
+const obj = {};
+const child = reactive(obj);
+const proto = { name: 'decade' };
+const parent = reactive(proto);
+Object.setPrototypeOf(child, parent);
+child.name; // 打印两次 name key
+child.name = 'zio'; // 这个也会打印两次 target, receiver
+```
+
+为啥 `child.name` 会触发原型的 `get`, 同理 `child.name = 'zio'` 为啥也会触发原型的 `set`, 现在是不是有点眉目 为啥要加判断,
+就是为了 `屏蔽` 原型, 我们仔细看 `receiver` 两次打印的其实都是 `child` 而 `child` 的 源对象就是我们的 `obj`, 所以 `target === toRaw(receiver)` 能屏蔽 `原型`, 可以理解为减少不必要的 `依赖收集`
 
 ---
