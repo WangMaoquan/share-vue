@@ -44,7 +44,7 @@
       proxy.name = 'zio';
     </script>
     <!-- <script type="module">
-      import { reactive, watch, watchEffect } from 'vue';
+      import { reactive, watch, watchEffect, readonly, ref } from 'vue';
       const arr = reactive([1, 2, 3, 4, 5]);
       watch(
         () => arr.length,
@@ -72,6 +72,23 @@
       console.log(arr.indexOf(findObj));
       console.log(arr.lastIndexOf(findObj));
       console.log(arr.includes(findObj));
+
+      const sub = readonly(
+        reactive({
+          msg: 'decade',
+        }),
+      );
+      const pub = readonly(ref(1));
+
+      const state = reactive({
+        sub,
+        pub,
+      });
+
+      state.sub = {};
+      console.log(sub);
+      state.pub = ref(2);
+      console.log(pub);
     </script> -->
   </body>
 </html>

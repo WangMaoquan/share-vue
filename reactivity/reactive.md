@@ -236,3 +236,49 @@ function createArrayInstrumentations() {
 #### set
 
 `set()` 方法是设置属性值操作的捕获器, 通俗一点就是 `obj.xxx = xxx`, `obj["xxx"] = xxx`
+
+```typescript
+function set(
+  target: object,
+  key: string | symbol,
+  value: unknown,
+  receiver: object,
+): boolean {
+  let oldValue = (target as any)[key];
+  if (isReadonly(oldValue) && isRef(oldValue) && !isRef(value)) {
+    return false;
+  }
+  if (!this._shallow) {
+    if (!isShallow(value) && !isReadonly(value)) {
+      oldValue = toRaw(oldValue);
+      value = toRaw(value);
+    }
+    if (!isArray(target) && isRef(oldValue) && !isRef(value)) {
+      oldValue.value = value;
+      return true;
+    }
+  }
+  const hadKey =
+    isArray(target) && isIntegerKey(key)
+      ? Number(key) < target.length
+      : hasOwn(target, key);
+  const result = Reflect.set(target, key, value, receiver);
+  if (target === toRaw(receiver)) {
+    if (!hadKey) {
+      trigger(target, TriggerOpTypes.ADD, key, value);
+    } else if (hasChanged(value, oldValue)) {
+      trigger(target, TriggerOpTypes.SET, key, value, oldValue);
+    }
+  }
+  return result;
+}
+```
+
+主要的做的事
+
+1. 处理 旧值是`readonly ref`
+2. toRaw 处理新值, 旧值
+3. 处理 `非数组`中 旧值是 `ref` 新值不是 `ref`
+4. 处理 只有自身的 `key` 对应的 `value`, 才会去 派发更新
+
+---
