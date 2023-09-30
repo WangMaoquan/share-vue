@@ -1,6 +1,13 @@
 ## share
 
-`vue3.x` 分享
+关于 `vue3.x` 分享
+
+### pinia
+
+[marp](https://marpit.marp.app/directives?id=front-matter)
+
+- [x] use pinia
+- [x] learn pinia code
 
 ### reactivity
 
