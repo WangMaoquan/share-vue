@@ -316,3 +316,69 @@ child.name = 'zio'; // 这个也会打印两次 target, receiver
 就是为了 `屏蔽` 原型, 我们仔细看 `receiver` 两次打印的其实都是 `child` 而 `child` 的 源对象就是我们的 `obj`, 所以 `target === toRaw(receiver)` 能屏蔽 `原型`, 可以理解为减少不必要的 `依赖收集`
 
 ---
+
+##### has
+
+`has()` 方法是针对 `in` 操作符的代理方法
+
+```typescript
+function has(target: object, key: string | symbol): boolean {
+  const result = Reflect.has(target, key);
+  if (!isSymbol(key) || !builtInSymbols.has(key)) {
+    track(target, TrackOpTypes.HAS, key);
+  }
+  return result;
+}
+```
+
+主要的就是 判断 `key` 是否需要被 `收集`
+
+---
+
+##### deleteProperty
+
+`deleteProperty()` 方法用于拦截对对象属性的 delete 操作
+
+```typescript
+function deleteProperty(target: object, key: string | symbol): boolean {
+  const hadKey = hasOwn(target, key);
+  const oldValue = (target as any)[key];
+  const result = Reflect.deleteProperty(target, key);
+  if (result && hadKey) {
+    trigger(target, TriggerOpTypes.DELETE, key, undefined, oldValue);
+  }
+  return result;
+}
+```
+
+主要做的就是 判断 `key` 是否应该 派发更新
+
+---
+
+##### ownKeys
+
+`ownKeys()` 方法用于拦截 Reflect.ownKeys(), 这是 `mdn` 的介绍, 是不是感觉比前面几个的介绍更加的 `笼统`, 然后我切换成 `英文`
+
+The `handler.ownKeys()` method is a trap for the `[[OwnPropertyKeys]]` object internal method, which is used by operations such as `Object.keys()`, `Reflect.ownKeys()`, etc
+
+可以看出拦截的方法有 `Object.keys`, 是获取 `keys` 的, `Object.getOwnPropertyNames`, `Object.getOwnPropertySymbols` 也是获取 `keys` 的, `for...in` 也是
+
+```javascript
+Object.keys(proxy);
+for (let key in proxy) {
+  console.log(key);
+}
+Object.getOwnPropertyNames(proxy);
+Object.getOwnPropertySymbols(proxy);
+```
+
+**下面看实现**
+
+```typescript
+function ownKeys(target: object): (string | symbol)[] {
+  track(target, TrackOpTypes.ITERATE, isArray(target) ? 'length' : ITERATE_KEY);
+  return Reflect.ownKeys(target);
+}
+```
+
+---

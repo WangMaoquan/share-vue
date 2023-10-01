@@ -90,7 +90,7 @@
       state.pub = ref(2);
       console.log(pub);
     </script> -->
-    <script>
+    <!-- <script>
       const reactive = (target) => {
         return new Proxy(target, {
           get(target, key, receiver) {
@@ -113,6 +113,29 @@
       Object.setPrototypeOf(child, parent);
       child.name;
       child.name = 'zio';
+    </script> -->
+    <script>
+      const proxy = new Proxy(
+        {
+          name: 'decade',
+          age: 20,
+          flag: Symbol('flag'),
+          [Symbol('key')]: 'symbol-key',
+        },
+        {
+          ownKeys(target) {
+            console.log('trigger ownkeys');
+            return Reflect.ownKeys(target);
+          },
+        },
+      );
+
+      Object.keys(proxy);
+      for (let key in proxy) {
+        console.log(key);
+      }
+      Object.getOwnPropertyNames(proxy);
+      Object.getOwnPropertySymbols(proxy);
     </script>
   </body>
 </html>
