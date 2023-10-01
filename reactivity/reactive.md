@@ -317,7 +317,7 @@ child.name = 'zio'; // 这个也会打印两次 target, receiver
 
 ---
 
-##### has
+#### has
 
 `has()` 方法是针对 `in` 操作符的代理方法
 
@@ -335,7 +335,7 @@ function has(target: object, key: string | symbol): boolean {
 
 ---
 
-##### deleteProperty
+#### deleteProperty
 
 `deleteProperty()` 方法用于拦截对对象属性的 delete 操作
 
@@ -355,7 +355,7 @@ function deleteProperty(target: object, key: string | symbol): boolean {
 
 ---
 
-##### ownKeys
+#### ownKeys
 
 `ownKeys()` 方法用于拦截 Reflect.ownKeys(), 这是 `mdn` 的介绍, 是不是感觉比前面几个的介绍更加的 `笼统`, 然后我切换成 `英文`
 
@@ -382,3 +382,65 @@ function ownKeys(target: object): (string | symbol)[] {
 ```
 
 ---
+
+### collectionHandlers
+
+我们思考一下? `Map/Set` 是怎么 `添加值/访问值` 的? `map.set/map.get`, `set.add | ps: Set 没有提供访问某一项的api` 是不是发现并不是像 `对象` 那样 `object.propertyName` 去访问, `object.propertyName = xxx` 去修改, 所以对于对象的 `访问/修改` 其实并不适用于 `Map/Set`
+
+我们看下面的代码
+
+```javascript
+const proxyMap = new Proxy(new Map(), {
+  get(target, key, receiver) {
+    console.log('map-key', key);
+    return Reflect.get(target, key, receiver);
+  },
+});
+const proxySet = new Proxy(new Set(), {
+  get(target, key, receiver) {
+    console.log('set-key', key);
+    return Reflect.get(target, key, receiver);
+  },
+});
+proxyMap.set('key1', 'key1');
+// map-key set
+// Uncaught TypeError: Method Map.prototype.set called on incompatible receiver #<Map>
+proxyMap.has('key1');
+// map-key has
+// Uncaught TypeError: Method Map.prototype.has called on incompatible receiver #<Map>
+proxyMap.get('key1');
+// map-key get
+// Uncaught TypeError: Method Map.prototype.get called on incompatible receiver #<Map>
+proxySet.add(1);
+// set-key add
+// reactive.html:156 Uncaught TypeError: Method Set.prototype.add called on incompatible receiver #<Set>
+proxySet.delete(1);
+// set-key delete
+// reactive.html:156 Uncaught TypeError: Method Set.prototype.delete called on incompatible receiver #<Set>
+```
+
+我们能获取到对应的 `key`, 这是因为 `.`, 然后有一个报错, 关键词 `called on incompatible receiver`, 意思是在不兼容的 `receiver` 上调用, 这里的 `receiver` 其实就是我们的 `proxy`, 为啥会有这么一个报错? 我瞅了瞅了 [ECMAScript 规范](https://tc39.es/ecma262/multipage/keyed-collections.html#sec-set-objects) 中有这么一句话 `Subclass constructors that intend to inherit the specified Set behaviour must include a super call to the Set constructor to create and initialize the subclass instance with the internal state necessary to support the Set(Map).prototype built-in methods` 大概意思就是只有 `Set/Map` 或者 `SubSet/SubMap` 才能调用 `Set/Map` 原型链上的内置的方法. 所以上面的例子我们可以改改
+
+```javascript
+class MySet extends Set {
+  constructor() {
+    super();
+  }
+  add(v) {
+    console.log(v);
+    // super.add(v)
+    return this;
+  }
+  get size() {
+    return 1;
+  }
+}
+const proxySet = new Proxy(new MySet(), {
+  get(target, key, receiver) {
+    console.log('set-key', key);
+    return Reflect.get(target, key, receiver);
+  },
+});
+proxySet.add(1); // 执行 add 中的 console
+proxySet.size; // 打印 1
+```

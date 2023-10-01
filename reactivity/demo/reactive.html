@@ -114,7 +114,7 @@
       child.name;
       child.name = 'zio';
     </script> -->
-    <script>
+    <!-- <script>
       const proxy = new Proxy(
         {
           name: 'decade',
@@ -136,6 +136,43 @@
       }
       Object.getOwnPropertyNames(proxy);
       Object.getOwnPropertySymbols(proxy);
+    </script> -->
+    <!-- <script>
+      const proxyMap = new Proxy(new Map(), {
+        get(target, key, receiver) {
+          console.log('map-key', key);
+          return Reflect.get(target, key, receiver);
+        },
+      });
+      const proxySet = new Proxy(new Set(), {
+        get(target, key, receiver) {
+          console.log('set-key', key);
+          return Reflect.get(target, key, receiver);
+        },
+      });
+      // proxyMap.set('key1', 'key1');
+      // proxyMap.has('key1');
+      // proxyMap.get('key1');
+      // proxySet.add(1);
+      // proxySet.delete(1)
+    </script> -->
+    <script>
+      class MySet extends Set {
+        add(v) {
+          console.log(v);
+        }
+        get size() {
+          return 1;
+        }
+      }
+      const proxySet = new Proxy(new MySet(), {
+        get(target, key, receiver) {
+          console.log('set-key', key);
+          return Reflect.get(target, key, receiver);
+        },
+      });
+      proxySet.add(1);
+      console.log(proxySet.size);
     </script>
   </body>
 </html>
