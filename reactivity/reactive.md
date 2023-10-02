@@ -557,9 +557,9 @@ const mutableInstrumentations: Record<string, Function | number> = {
 
 ---
 
-##### add / set / deleteEntry
+##### add / set / deleteEntry / clear
 
-`add / set` 对应的是 `Set/Map` 添加值的方法 ,`set` 也是修改值的方法, `delete` 其实也是修改值
+`add / set` 对应的是 `Set/Map` 添加值的方法 ,`set` 也是修改值的方法, `delete` 其实也是修改值, `clear` 其实也能这么理解
 类比下 `对象` 的 `添加/修改`, 思路其实就很明确了
 
 1. 先判断是添加还是修改
@@ -629,6 +629,25 @@ function deleteEntry(this: CollectionTypes, key: unknown) {
   const result = target.delete(key);
   if (hadKey) {
     trigger(target, TriggerOpTypes.DELETE, key, undefined, oldValue);
+  }
+  return result;
+}
+```
+
+**clear**
+
+```typescript
+function clear(this: IterableCollections) {
+  const target = toRaw(this);
+  const hadItems = target.size !== 0;
+  const oldTarget = __DEV__
+    ? isMap(target)
+      ? new Map(target)
+      : new Set(target)
+    : undefined;
+  const result = target.clear();
+  if (hadItems) {
+    trigger(target, TriggerOpTypes.CLEAR, undefined, undefined, oldTarget);
   }
   return result;
 }
