@@ -480,6 +480,10 @@ const mutableInstrumentations = {
     const target = this.raw;
     return target.size;
   },
+  keys() {
+    const target = this.raw;
+    return target.keys();
+  },
 };
 
 const proxySet = new Proxy(new Set(), {
@@ -494,8 +498,83 @@ const proxySet = new Proxy(new Set(), {
 proxySet.add(1);
 console.log(proxySet.size);
 console.log(proxySet);
+console.log(proxySet.keys());
 ```
 
 好了现在就已经能正常工作了, 源码的实现也就是这样的一个实现
+
+---
+
+#### mutableCollectionHandlers
+
+```typescript
+export const mutableCollectionHandlers: ProxyHandler<CollectionTypes> = {
+  get: /*#__PURE__*/ createInstrumentationGetter(false, false),
+};
+function createInstrumentationGetter(isReadonly: boolean, shallow: boolean) {
+  const instrumentations = mutableInstrumentations;
+
+  return (
+    target: CollectionTypes,
+    key: string | symbol,
+    receiver: CollectionTypes,
+  ) => {
+    /** */
+    if (key === ReactiveFlags.RAW) {
+      return target;
+    }
+    return Reflect.get(
+      hasOwn(instrumentations, key) && key in target
+        ? instrumentations
+        : target,
+      key,
+      receiver,
+    );
+  };
+}
+```
+
+精简了一下代码嗷, 是不是觉得很眼熟, 我们就瞅瞅 `mutableInstrumentations`
+
+```typescript
+const mutableInstrumentations: Record<string, Function | number> = {
+  get(this: MapTypes, key: unknown) {
+    return get(this, key);
+  },
+  get size() {
+    return size(this as unknown as IterableCollections);
+  },
+  has,
+  add,
+  set,
+  delete: deleteEntry,
+  clear,
+  forEach: createForEach(false, false),
+};
+```
+
+发现有 `Map/Set` 原型上所有的方法, 下面看看内部实现的
+
+---
+
+##### add
+
+记住我们主要的思路 获取 `target` 然后调用 `add`
+
+```typescript
+function add(this: SetTypes, value: unknown) {
+  value = toRaw(value);
+  const target = toRaw(this);
+  const proto = getProto(target);
+  const hadKey = proto.has.call(target, value);
+  if (!hadKey) {
+    target.add(value);
+    trigger(target, TriggerOpTypes.ADD, value, value);
+  }
+  return this;
+}
+```
+
+现在是我们能够明确知道 新增的值 是否存在, 然后去 `派发更新`
 
 ---
