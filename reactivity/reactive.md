@@ -575,6 +575,21 @@ function add(this: SetTypes, value: unknown) {
 }
 ```
 
-现在是我们能够明确知道 新增的值 是否存在, 然后去 `派发更新`
+现在是我们能够明确知道 传入的值 是否存在, 然后去 `派发更新`
+
+---
+
+##### size
+
+```typescript
+function size(target: IterableCollections, isReadonly = false) {
+  target = (target as any)[ReactiveFlags.RAW];
+  !isReadonly && track(toRaw(target), TrackOpTypes.ITERATE, ITERATE_KEY);
+  return Reflect.get(target, 'size', target);
+}
+```
+
+只有不是只读 才会去 `收集依赖`
+我们看下 这里的代码 `Reflect.get(target, 'size', target)`, recevier 的形参位置, 传入的 `target` 也就是我们的 `Map/Set`, 然后 `this` 指向的其实就是 `target`, 所以这里能调用
 
 ---
