@@ -557,9 +557,10 @@ const mutableInstrumentations: Record<string, Function | number> = {
 
 ---
 
-##### add / set
+##### add / set / deleteEntry
 
-`add / set` 对应的是 `Set/Map` 添加值的方法( `Map` 还可以修改值), 类比下 `对象` 的 `添加/修改`, 思路其实就很明确了
+`add / set` 对应的是 `Set/Map` 添加值的方法 ,`set` 也是修改值的方法, `delete` 其实也是修改值
+类比下 `对象` 的 `添加/修改`, 思路其实就很明确了
 
 1. 先判断是添加还是修改
 2. 添加就触发 `TriggerOpTypes.ADD`
@@ -607,6 +608,29 @@ function set(this: MapTypes, key: unknown, value: unknown) {
     trigger(target, TriggerOpTypes.SET, key, value, oldValue);
   }
   return this;
+}
+```
+
+**deleteEntry**
+
+```typescript
+function deleteEntry(this: CollectionTypes, key: unknown) {
+  const target = toRaw(this);
+  const { has, get } = getProto(target);
+  let hadKey = has.call(target, key);
+  if (!hadKey) {
+    key = toRaw(key);
+    hadKey = has.call(target, key);
+  } else if (__DEV__) {
+    checkIdentityKeys(target, has, key);
+  }
+
+  const oldValue = get ? get.call(target, key) : undefined;
+  const result = target.delete(key);
+  if (hadKey) {
+    trigger(target, TriggerOpTypes.DELETE, key, undefined, oldValue);
+  }
+  return result;
 }
 ```
 
