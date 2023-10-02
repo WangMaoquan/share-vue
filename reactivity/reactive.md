@@ -557,9 +557,17 @@ const mutableInstrumentations: Record<string, Function | number> = {
 
 ---
 
-##### add
+##### add / set
 
-记住我们主要的思路 获取 `target` 然后调用 `add`
+`add / set` 对应的是 `Set/Map` 添加值的方法( `Map` 还可以修改值), 类比下 `对象` 的 `添加/修改`, 思路其实就很明确了
+
+1. 先判断是添加还是修改
+2. 添加就触发 `TriggerOpTypes.ADD`
+3. 修改还得判断 `值` 是否修改, 确认修改 才会去触发 `TriggerOpTypes.SET`
+
+然后 针对 `Set/Map` 我们还需要加一步 获取`target`
+
+**先看 add**
 
 ```typescript
 function add(this: SetTypes, value: unknown) {
@@ -575,7 +583,32 @@ function add(this: SetTypes, value: unknown) {
 }
 ```
 
-现在是我们能够明确知道 传入的值 是否存在, 然后去 `派发更新`
+**set**
+
+```typescript
+function set(this: MapTypes, key: unknown, value: unknown) {
+  value = toRaw(value);
+  const target = toRaw(this);
+  const { has, get } = getProto(target);
+
+  let hadKey = has.call(target, key);
+  if (!hadKey) {
+    key = toRaw(key);
+    hadKey = has.call(target, key);
+  } else if (__DEV__) {
+    checkIdentityKeys(target, has, key);
+  }
+
+  const oldValue = get.call(target, key);
+  target.set(key, value);
+  if (!hadKey) {
+    trigger(target, TriggerOpTypes.ADD, key, value);
+  } else if (hasChanged(value, oldValue)) {
+    trigger(target, TriggerOpTypes.SET, key, value, oldValue);
+  }
+  return this;
+}
+```
 
 ---
 
@@ -591,5 +624,9 @@ function size(target: IterableCollections, isReadonly = false) {
 
 只有不是只读 才会去 `收集依赖`
 我们看下 这里的代码 `Reflect.get(target, 'size', target)`, recevier 的形参位置, 传入的 `target` 也就是我们的 `Map/Set`, 然后 `this` 指向的其实就是 `target`, 所以这里能调用
+
+---
+
+##### get
 
 ---
