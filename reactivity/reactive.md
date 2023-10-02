@@ -444,3 +444,58 @@ const proxySet = new Proxy(new MySet(), {
 proxySet.add(1); // 执行 add 中的 console
 proxySet.size; // 打印 1
 ```
+
+现在我们直接执行方法已经没有报错了, 但是现在有个问题, 我们这么做并没有将值添加进 我们的集合中, 所以我们需要在方法里面调用 `super.add`
+然后你会发现报错了, 还是同样的错误 `Uncaught TypeError: Method Set.prototype.add called on incompatible receiver #<MySet>`
+相信到这里你也许就会知道为啥会报错了, 因为 `add(v)` 这个方法里面的 `this` 指向的其实是 `recevier(proxy)`, 但是我们现在比直接的 `proxy.add` 已经在执行可以不报错(不执行 super)
+其实解决的方法很简单我们直接 `target.add(v)` 不就好了嘛, 下面我加点代码
+
+```javascript
+class MySet extends Set {
+  add(v) {
+    const target = this.raw;
+    console.log(target);
+    /** */
+  }
+}
+const proxySet = new Proxy(new MySet(), {
+  get(target, key, receiver) {
+    if (key === 'raw') {
+      return target;
+    }
+    /** */
+  },
+});
+```
+
+现在我们能拿到 `target` 了,但是由于我们的 `SupSet`, 自己实现了 `add` 方法, 所以是不会调用 `Set.prototype.add` 的, 我们要怎么解决这个问题, 其实也很简单, 换成普通对象, 普通对象里面有 `Map/Set` 的方法就行, 下面我们再重构
+
+```javascript
+const mutableInstrumentations = {
+  add(v) {
+    const target = this.raw;
+    target.add(v);
+  },
+  get size() {
+    const target = this.raw;
+    return target.size;
+  },
+};
+
+const proxySet = new Proxy(new Set(), {
+  get(target, key, receiver) {
+    if (key === 'raw') {
+      return target;
+    }
+    console.log('set-key', key);
+    return Reflect.get(mutableInstrumentations, key, receiver);
+  },
+});
+proxySet.add(1);
+console.log(proxySet.size);
+console.log(proxySet);
+```
+
+好了现在就已经能正常工作了, 源码的实现也就是这样的一个实现
+
+---

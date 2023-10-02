@@ -156,10 +156,12 @@
       // proxySet.add(1);
       // proxySet.delete(1)
     </script> -->
-    <script>
+    <!-- <script>
       class MySet extends Set {
         add(v) {
-          console.log(v);
+          const target = this.raw;
+          console.log(target);
+          return this;
         }
         get size() {
           return 1;
@@ -167,12 +169,40 @@
       }
       const proxySet = new Proxy(new MySet(), {
         get(target, key, receiver) {
+          if (key === 'raw') {
+            return target;
+          }
           console.log('set-key', key);
           return Reflect.get(target, key, receiver);
         },
       });
       proxySet.add(1);
       console.log(proxySet.size);
+    </script> -->
+    <script>
+      const mutableInstrumentations = {
+        add(v) {
+          const target = this.raw;
+          target.add(v);
+        },
+        get size() {
+          const target = this.raw;
+          return target.size;
+        },
+      };
+
+      const proxySet = new Proxy(new Set(), {
+        get(target, key, receiver) {
+          if (key === 'raw') {
+            return target;
+          }
+          console.log('set-key', key);
+          return Reflect.get(mutableInstrumentations, key, receiver);
+        },
+      });
+      proxySet.add(1);
+      console.log(proxySet.size);
+      console.log(proxySet);
     </script>
   </body>
 </html>
