@@ -733,3 +733,28 @@ function has(this: CollectionTypes, key: unknown, isReadonly = false): boolean {
 前面的思路 和 `get` 差不多, 最后返回的结果就 判断 `target` 上存在的 是 `key` 还是 `rawkey`
 
 ---
+
+##### forEach
+
+```typescript
+function createForEach(isReadonly: boolean, isShallow: boolean) {
+  return function forEach(
+    this: IterableCollections,
+    callback: Function,
+    thisArg?: unknown,
+  ) {
+    const observed = this as any;
+    const target = observed[ReactiveFlags.RAW];
+    const rawTarget = toRaw(target);
+    const wrap = isShallow ? toShallow : isReadonly ? toReadonly : toReactive;
+    !isReadonly && track(rawTarget, TrackOpTypes.ITERATE, ITERATE_KEY);
+    return target.forEach((value: unknown, key: unknown) => {
+      return callback.call(thisArg, wrap(value), wrap(key), observed);
+    });
+  };
+}
+```
+
+思路就是模拟一个 `forEach`, 我们只需要在 原本的 `target.forEach` 的回调里面, 执行我们注册的回调就行了, 就是需要注意 `this`, 还有 `value`, `key` 需要被 `wrap`
+
+---
