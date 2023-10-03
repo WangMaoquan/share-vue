@@ -856,3 +856,49 @@ function createIterableMethod(
 4. 返回自定义的 迭代器协议和可迭代协议的对象
 
 ---
+
+##### values / keys
+
+```typescript
+function createIterableMethod(
+  method: string | symbol,
+  isReadonly: boolean,
+  isShallow: boolean,
+) {
+  return function (
+    this: IterableCollections,
+    ...args: unknown[]
+  ): Iterable & Iterator {
+    const target = (this as any)[ReactiveFlags.RAW];
+    const rawTarget = toRaw(target);
+    const targetIsMap = isMap(rawTarget);
+    const isKeyOnly = method === 'keys' && targetIsMap;
+    const innerIterator = target[method](...args);
+    const wrap = isShallow ? toShallow : isReadonly ? toReadonly : toReactive;
+    !isReadonly &&
+      track(
+        rawTarget,
+        TrackOpTypes.ITERATE,
+        isKeyOnly ? MAP_KEY_ITERATE_KEY : ITERATE_KEY,
+      );
+    return {
+      next() {
+        const { value, done } = innerIterator.next();
+        return done
+          ? { value, done }
+          : {
+              value: wrap(value),
+              done,
+            };
+      },
+      [Symbol.iterator]() {
+        return this;
+      },
+    };
+  };
+}
+```
+
+思路其实都是差不多的, 只不过在处理 `Map.keys`的时候多定义了一个 `MAP_KEY_ITERATE_KEY` 这是因为 `Map.keys` 只关系 `key` 的变化
+
+---
