@@ -758,3 +758,59 @@ function createForEach(isReadonly: boolean, isShallow: boolean) {
 思路就是模拟一个 `forEach`, 我们只需要在 原本的 `target.forEach` 的回调里面, 执行我们注册的回调就行了, 就是需要注意 `this`, 还有 `value`, `key` 需要被 `wrap`
 
 ---
+
+#### 迭代器协议与可迭代协议
+
+在处理 `Map/Set` 的 `keys/values/entries` 还有 `for...of` 之前我们需要回顾一遍 `迭代器协议与可迭代协议`
+
+- 迭代器协议 简单的来说就是返回一个对象, 给对象实现了 `next` 方法, 并且该方法 返回满足 `{done: boolean; value: unknown;}`
+- 可迭代协议 简单来说就是实现 `Symbol.iterator`
+
+```javascript
+const arr = [1, 2, 3, 4, 5];
+for (let i of arr) {
+  console.log(i);
+}
+const obj = {
+  name: 'decade',
+  age: 21,
+  email: '1xxxx@gmail.com',
+};
+for (let i of obj) {
+  console.log(i);
+} // Uncaught TypeError: obj is not iterable
+```
+
+因为 `for...of` 是需要实现 `Symbol.iterator` 才能使用的, 但是 `对象` 是没有实现的, 我们可以手动实现
+
+```javascript
+const obj = {
+  /** */
+  [Symbol.iterator]() {
+    const _this = this;
+    const keys = Object.keys(_this);
+    let i = 0;
+    return {
+      next() {
+        const value = _this[keys[i]];
+        i++;
+        return {
+          done: i <= keys.length ? false : true,
+          value,
+        };
+      },
+    };
+  },
+};
+```
+
+在 `Map/Set` 中其实 `Symbol.iterator` 就是 `entries`
+
+```javascript
+console.log(Map.entries === Map[Symbol.iterator]); // true
+console.log(Set.entries === Set[Symbol.iterator]); // true
+```
+
+扯完了 `迭代器协议`, `可迭代协议`, 下面就开始 代理`Map/Set` 的 `keys/values/entries`
+
+---

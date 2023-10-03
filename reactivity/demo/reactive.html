@@ -179,7 +179,7 @@
       proxySet.add(1);
       console.log(proxySet.size);
     </script> -->
-    <script>
+    <!-- <script>
       const mutableInstrumentations = {
         add(v) {
           const target = this.raw;
@@ -203,6 +203,40 @@
       proxySet.add(1);
       console.log(proxySet.size);
       console.log(proxySet);
+    </script> -->
+    <script>
+      const arr = [1, 2, 3, 4, 5];
+      for (let i of arr) {
+        console.log(i);
+      }
+
+      const obj = {
+        name: 'decade',
+        age: 21,
+        email: '1xxxx@gmail.com',
+        [Symbol.iterator]() {
+          const _this = this;
+          const keys = Object.keys(_this);
+          let i = 0;
+          return {
+            next() {
+              const value = _this[keys[i]];
+              i++;
+              return {
+                done: i <= keys.length ? false : true,
+                value,
+              };
+            },
+          };
+        },
+      };
+
+      for (let i of obj) {
+        console.log(i);
+      }
+
+      console.log(Map.entries === Map[Symbol.iterator]);
+      console.log(Set.entries === Set[Symbol.iterator]);
     </script>
   </body>
 </html>
