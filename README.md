@@ -12,7 +12,7 @@
 ### reactivity
 
 - [x] effectScope
-- [ ] reactive
+- [x] reactive
 - [ ] ref
 - [ ] computed
 - [ ] effect
