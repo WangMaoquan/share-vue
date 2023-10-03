@@ -902,3 +902,21 @@ function createIterableMethod(
 思路其实都是差不多的, 只不过在处理 `Map.keys`的时候多定义了一个 `MAP_KEY_ITERATE_KEY` 这是因为 `Map.keys` 只关系 `key` 的变化
 
 ---
+
+### 总结
+
+首先我们对于 `Object,Array` 使用的到 `ProxyHandler` 有五种, 分别是
+
+1. `get` 访问对象属性的时候
+2. `set` 修改对象属性的时候
+3. `has` 使用 `in` 操作符
+4. `ownKeys` 处理 `Object.keys`, `for...in...`, `Object.getOwnPropertyNames`, `Object.getOwnPropertySymbols`
+5. `delete` 处理 `delele` 操作符
+
+其中 `get, has, ownKeys` 是 收集依赖, `set, delete` 是 派发更新
+
+针对于 `Map/Set` 使用到的只有 `ProxyHandler` 中的 `get`, 因为 `Map/Set` 要使用 `has/entries...` 这些方法时, 只能是 `Set/Map` 的实例 或者 `其子类`的实例
+
+我们通过 在一个对象中实现 `Map/Set` 上的方法, 然后通过 `Reflect.get()`的第三个参数, 在我们实现的方法中拿到 `receiver`, 进而通过 `toRaw` 拿到原本的 `target`, 最后通过 `target` 去调用, 达到我们的目的
+
+在处理 `forEach, entries, for...of, keys, values` 这些有 `回调` 或者直接拿到 `key,value` 的方法时, 需要我们进一步的处理一下, 再对于后面四个的处理, 我们复习了 什么是 `可迭代协议` 和 `迭代器协议`
