@@ -235,6 +235,8 @@
         console.log(i);
       }
 
+      console.log(obj[Symbol.iterator]());
+
       console.log(Map.entries === Map[Symbol.iterator]);
       console.log(Set.entries === Set[Symbol.iterator]);
     </script>

@@ -811,6 +811,48 @@ console.log(Map.entries === Map[Symbol.iterator]); // true
 console.log(Set.entries === Set[Symbol.iterator]); // true
 ```
 
-扯完了 `迭代器协议`, `可迭代协议`, 下面就开始 代理`Map/Set` 的 `keys/values/entries`
+扯完了 `迭代器协议`, `可迭代协议`, 想了解更多看看[mdn-Iteration_protocols](https://developer.mozilla.org/zh-CN/docs/Web/JavaScript/Reference/Iteration_protocols) 下面就开始 代理`Map/Set` 的 `keys/values/entries`
+
+---
+
+##### entries / for...of
+
+```typescript
+function createIterableMethod(
+  method: string | symbol,
+  isReadonly: boolean,
+  isShallow: boolean,
+) {
+  return function (
+    this: IterableCollections,
+    ...args: unknown[]
+  ): Iterable & Iterator {
+    const target = (this as any)[ReactiveFlags.RAW];
+    const rawTarget = toRaw(target);
+    const innerIterator = target[method](...args);
+    const wrap = isShallow ? toShallow : isReadonly ? toReadonly : toReactive;
+    !isReadonly && track(rawTarget, TrackOpTypes.ITERATE, ITERATE_KEY);
+    return {
+      next() {
+        const { value, done } = innerIterator.next();
+        return done
+          ? { value, done }
+          : {
+              value: [wrap(value[0]), wrap(value[1])],
+              done,
+            };
+      },
+      [Symbol.iterator]() {
+        return this;
+      },
+    };
+  };
+}
+```
+
+1. 获取当前的 `target`, 获取 `rawTarget`
+2. 获取 迭代执行的结果 (返回是一个可迭代对象)
+3. 生成包装函数`wrap`, 只读不回 `track`
+4. 返回自定义的 迭代器协议和可迭代协议的对象
 
 ---
