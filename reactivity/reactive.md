@@ -672,4 +672,64 @@ function size(target: IterableCollections, isReadonly = false) {
 
 ##### get
 
+`get` 的思路其实也是和 获取` 对象的属性` 大差不差的
+
+主要做的就是 访问了 `key` 然后 判断不是 `readonly` 就会被 `track`, 最后判断 `返回值` 是否需要被处理再返回
+
+```typescript
+function get(
+  target: MapTypes,
+  key: unknown,
+  isReadonly = false,
+  isShallow = false,
+) {
+  target = (target as any)[ReactiveFlags.RAW];
+  const rawTarget = toRaw(target);
+  const rawKey = toRaw(key);
+  if (!isReadonly) {
+    if (hasChanged(key, rawKey)) {
+      track(rawTarget, TrackOpTypes.GET, key);
+    }
+    track(rawTarget, TrackOpTypes.GET, rawKey);
+  }
+  const { has } = getProto(rawTarget);
+  const wrap = isShallow ? toShallow : isReadonly ? toReadonly : toReactive;
+  if (has.call(rawTarget, key)) {
+    return wrap(target.get(key));
+  } else if (has.call(rawTarget, rawKey)) {
+    return wrap(target.get(rawKey));
+  } else if (target !== rawTarget) {
+    target.get(key);
+  }
+}
+```
+
+1. 获取第一层的 `target`
+2. 获取最原本的 `target` 和 `key`
+3. 不是 `readonly` 做 `track`
+4. 返回结果
+
+---
+
+##### has
+
+```typescript
+function has(this: CollectionTypes, key: unknown, isReadonly = false): boolean {
+  const target = (this as any)[ReactiveFlags.RAW];
+  const rawTarget = toRaw(target);
+  const rawKey = toRaw(key);
+  if (!isReadonly) {
+    if (hasChanged(key, rawKey)) {
+      track(rawTarget, TrackOpTypes.HAS, key);
+    }
+    track(rawTarget, TrackOpTypes.HAS, rawKey);
+  }
+  return key === rawKey
+    ? target.has(key)
+    : target.has(key) || target.has(rawKey);
+}
+```
+
+前面的思路 和 `get` 差不多, 最后返回的结果就 判断 `target` 上存在的 是 `key` 还是 `rawkey`
+
 ---
