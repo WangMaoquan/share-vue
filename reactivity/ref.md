@@ -95,3 +95,53 @@ export interface Ref<T = any> {
 加上一个 `唯一key` 就能就解决嘞
 
 ---
+
+## customRef
+
+创建一个自定义 `ref`, `显式` 控制其依赖跟踪和更新触发
+
+什么叫`显示`, 就是控制权暴露给用户, 其实就是 暴露出 `track`, `trigger`, 怎么暴露呢? 作为函数的 `参数` 传入就好了, 类比下 `new Promise((resolve, reject) => {})` 的 `resolve, reject`
+
+```typescript
+export function customRef<T>(factory: CustomRefFactory<T>): Ref<T> {
+  return new CustomRefImpl(factory) as any;
+}
+```
+
+接受一个 `工厂函数`, 返回 实现自定义的 `getter/setter` 的一个对象
+
+---
+
+### CustomRefImpl
+
+```typescript
+class CustomRefImpl<T> {
+  public dep?: Dep = undefined;
+
+  private readonly _get: ReturnType<CustomRefFactory<T>>['get'];
+  private readonly _set: ReturnType<CustomRefFactory<T>>['set'];
+
+  public readonly __v_isRef = true;
+
+  constructor(factory: CustomRefFactory<T>) {
+    const { get, set } = factory(
+      () => trackRefValue(this),
+      () => triggerRefValue(this),
+    );
+    this._get = get;
+    this._set = set;
+  }
+
+  get value() {
+    return this._get();
+  }
+
+  set value(newVal) {
+    this._set(newVal);
+  }
+}
+```
+
+`customRef` 肯定也是一个 `Ref`, 所以 `dep, _v_isRef` 都会有的, 生成实例的时候, 构造函数会把 `track, trigger` 传给我们的 `factory` 达到目的
+
+---
