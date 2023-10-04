@@ -283,3 +283,34 @@ export function toRefs<T extends object>(object: T): ToRefs<T> {
 这是因为处理过了, 实现的方法叫做 `proxyRefs`
 
 ---
+
+### proxyRefs
+
+```typescript
+export function proxyRefs<T extends object>(
+  objectWithRefs: T,
+): ShallowUnwrapRef<T> {
+  return isReactive(objectWithRefs)
+    ? objectWithRefs
+    : new Proxy(objectWithRefs, shallowUnwrapHandlers);
+}
+
+const shallowUnwrapHandlers: ProxyHandler<any> = {
+  get: (target, key, receiver) => unref(Reflect.get(target, key, receiver)),
+  set: (target, key, value, receiver) => {
+    const oldValue = target[key];
+    if (isRef(oldValue) && !isRef(value)) {
+      oldValue.value = value;
+      return true;
+    } else {
+      return Reflect.set(target, key, value, receiver);
+    }
+  },
+};
+```
+
+`proxyRefs` 会判断传入的是否是一个 响应式过的对象, 否则会用 `Proxy` 代理
+
+而 `shallowUnwrapHandlers` 的 `get` 就是我们不用在 模板中访问 `Ref` 时, 加上 `.value` 的原因
+
+---
