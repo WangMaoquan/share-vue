@@ -236,3 +236,126 @@ function triggerEffect(
 
 ---
 
+# ReactiveEffect
+
+接下来就开始我们的 `ReactiveEffect`, 其实 `dep` 里面存放的就是 `ReactiveEffect`, 我们通过上面的代码, 已经大概知道 `ReactiveEffect` 上有哪些方法, 比如 `scheduler`, `run`, 有哪些属性 `computed`, `allowRecurse`, 下面我们正式进入
+
+```typescript
+export class ReactiveEffect<T = any> {
+  active = true;
+  deps: Dep[] = [];
+  parent: ReactiveEffect | undefined = undefined;
+  computed?: ComputedRefImpl<T>;
+  allowRecurse?: boolean;
+  private deferStop?: boolean;
+  onStop?: () => void;
+  onTrack?: (event: DebuggerEvent) => void;
+  onTrigger?: (event: DebuggerEvent) => void;
+  constructor(
+    public fn: () => T,
+    public scheduler: EffectScheduler | null = null,
+    scope?: EffectScope,
+  ) {
+    recordEffectScope(this, scope);
+  }
+  run() {
+    /** */
+  }
+  stop() {
+    /** */
+  }
+}
+```
+
+**属性**
+
+- `active`: 当前 `effect` 是否激活
+- `deps`: 存放着 当前 `effect` 收集过的 `dep`
+- `parent`: 处理 嵌套 `effect` 保存之前的 `activeEffect`
+- `computed` 存放 `computedRef`
+- `allowRecurse`: 是否允许递归
+- `deferStop`: 是否延迟停止
+- `fn`: 简单的理解就是我们传入的那个回调
+- `scheduler`: 调度方法, 存在时会优先执行
+
+**方法**
+
+- `onStop`: 触发 `stop` 后执行的方法
+- `onTrack`: 开发环境下触发 `track` 会执行的回调
+- `onTrigger`: 开发环境下触发 `trigger` 会执行的回调
+- `run`: 简单来说就是执行我们传入的 `fn`
+- `stop`: 是当前 `effect` 停止, 就是将 `active = false`
+
+属性方法介绍了一遍, 我们看看 `run`, `stop` 的实现
+
+---
+
+## run
+
+`run` 最主要干得就是 执行 `fn`, 中间还有些别的处理, 比如处理 `嵌套effect` 会给 `parent` 赋值, 之前不是提过清除 `不需要的依赖` 嘛, 当然也是在这里执行
+
+```typescript
+class ReactiveEffect {
+  run() {
+    if (!this.active) {
+      return this.fn();
+    }
+    let parent: ReactiveEffect | undefined = activeEffect;
+    let lastShouldTrack = shouldTrack;
+    while (parent) {
+      if (parent === this) {
+        return;
+      }
+      parent = parent.parent;
+    }
+    try {
+      this.parent = activeEffect;
+      activeEffect = this;
+      shouldTrack = true;
+
+      trackOpBit = 1 << ++effectTrackDepth;
+
+      if (effectTrackDepth <= maxMarkerBits) {
+        initDepMarkers(this);
+      } else {
+        cleanupEffect(this);
+      }
+      return this.fn();
+    } finally {
+      if (effectTrackDepth <= maxMarkerBits) {
+        finalizeDepMarkers(this);
+      }
+
+      trackOpBit = 1 << --effectTrackDepth;
+
+      activeEffect = this.parent;
+      shouldTrack = lastShouldTrack;
+      this.parent = undefined;
+
+      if (this.deferStop) {
+        this.stop();
+      }
+    }
+  }
+}
+```
+
+主要的逻辑是, 修改 `activeEffect` , 然后执行 `fn`, `try`中赋值用到的变量 `catch` 中重置, 我们之前说的清除依赖, 应该是 `cleanupEffect` 或者 `finalizeDepMarkers`, 我们先看 `cleanupEffect`
+
+### cleanupEffect
+
+```typescript
+function cleanupEffect(effect: ReactiveEffect) {
+  const { deps } = effect;
+  if (deps.length) {
+    for (let i = 0; i < deps.length; i++) {
+      deps[i].delete(effect);
+    }
+    deps.length = 0;
+  }
+}
+```
+
+这个方法我们发现 清空自己的 `deps` 的同时, 还让之前 保存着当前 `effect` 的 `dep` 删除当前 `effect`, 相当于断开所有, 一般也会执行到这个方法, 这个只有在 嵌套层级的深度超过了 `maxMarkerBits` 才会执行
+
+---
