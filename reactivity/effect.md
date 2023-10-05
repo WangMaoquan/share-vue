@@ -94,3 +94,145 @@ const depOk = depsMap.get('ok'); // 里面保存着上面的 watcheEffect
 ---
 
 # trigger
+
+那么 `trigger` 是 `怎么去取`, 取还记得我们 `TriggerOpTypes` 这个 枚举嘛? 还有我们的 自定义的 `ITERATE_KEY`, `MAP_KEY_ITERATE_KEY`嘛, 就根据这些来取出我们的 `dep`
+
+```typescript
+export function trigger(
+  target: object,
+  type: TriggerOpTypes,
+  key?: unknown,
+  newValue?: unknown,
+  oldValue?: unknown,
+  oldTarget?: Map<unknown, unknown> | Set<unknown>,
+) {
+  const depsMap = targetMap.get(target);
+  if (!depsMap) {
+    return;
+  }
+  let deps: (Dep | undefined)[] = [];
+  if (type === TriggerOpTypes.CLEAR) {
+    deps = [...depsMap.values()];
+  } else if (key === 'length' && isArray(target)) {
+    const newLength = Number(newValue);
+    depsMap.forEach((dep, key) => {
+      if (key === 'length' || key >= newLength) {
+        deps.push(dep);
+      }
+    });
+  } else {
+    if (key !== void 0) {
+      deps.push(depsMap.get(key));
+    }
+    switch (type) {
+      case TriggerOpTypes.ADD:
+        if (!isArray(target)) {
+          deps.push(depsMap.get(ITERATE_KEY));
+          if (isMap(target)) {
+            deps.push(depsMap.get(MAP_KEY_ITERATE_KEY));
+          }
+        } else if (isIntegerKey(key)) {
+          deps.push(depsMap.get('length'));
+        }
+        break;
+      case TriggerOpTypes.DELETE:
+        if (!isArray(target)) {
+          deps.push(depsMap.get(ITERATE_KEY));
+          if (isMap(target)) {
+            deps.push(depsMap.get(MAP_KEY_ITERATE_KEY));
+          }
+        }
+        break;
+      case TriggerOpTypes.SET:
+        if (isMap(target)) {
+          deps.push(depsMap.get(ITERATE_KEY));
+        }
+        break;
+    }
+  }
+
+  const eventInfo = __DEV__
+    ? { target, type, key, newValue, oldValue, oldTarget }
+    : undefined;
+
+  if (deps.length === 1) {
+    if (deps[0]) {
+      if (__DEV__) {
+        triggerEffects(deps[0], eventInfo);
+      } else {
+        triggerEffects(deps[0]);
+      }
+    }
+  } else {
+    const effects: ReactiveEffect[] = [];
+    for (const dep of deps) {
+      if (dep) {
+        effects.push(...dep);
+      }
+    }
+    if (__DEV__) {
+      triggerEffects(createDep(effects), eventInfo);
+    } else {
+      triggerEffects(createDep(effects));
+    }
+  }
+}
+```
+
+1. 获取 `depsMap`
+2. 根据 `type, key` 获取 `deps`, 存放的 `dep` 的数组
+   - 处理特殊
+     1. 处理 `TriggerOpTypes.CLEAR`, 比如 `proxySet.clear()`
+     2. 处理 `key` 为 `length` 且是数组, 比如直接修改`arr.length = 10`
+   - 处理普通: 直接通过 `key` 获取对应的 `dep`, 这里还需要加上对应操作 `TriggerOpTypes` 所收集的 `dep`, 这样才是全部的
+3. 触发 `dep` 里面的 `effect`
+
+---
+
+## triggerEffects
+
+```typescript
+export function triggerEffects(
+  dep: Dep | ReactiveEffect[],
+  debuggerEventExtraInfo?: DebuggerEventExtraInfo,
+) {
+  const effects = isArray(dep) ? dep : [...dep];
+  for (const effect of effects) {
+    if (effect.computed) {
+      triggerEffect(effect, debuggerEventExtraInfo);
+    }
+  }
+  for (const effect of effects) {
+    if (!effect.computed) {
+      triggerEffect(effect, debuggerEventExtraInfo);
+    }
+  }
+}
+
+function triggerEffect(
+  effect: ReactiveEffect,
+  debuggerEventExtraInfo?: DebuggerEventExtraInfo,
+) {
+  if (effect !== activeEffect || effect.allowRecurse) {
+    /** */
+    if (effect.scheduler) {
+      effect.scheduler();
+    } else {
+      effect.run();
+    }
+  }
+}
+```
+
+`triggerEffects` 主要做的就是两件事
+
+1. 转换成数组
+2. 遍历执行, 有限执行 `computed`, 再执行普通的
+
+`triggerEffect`
+
+1. 判断 执行的 `effect` 不是当前的 `activeEffect` 或者 当前的 `effect` 是允许递归的
+2. 优先执行 `scheduler` 否则执行 `run`
+
+---
+
