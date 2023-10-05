@@ -359,3 +359,86 @@ function cleanupEffect(effect: ReactiveEffect) {
 这个方法我们发现 清空自己的 `deps` 的同时, 还让之前 保存着当前 `effect` 的 `dep` 删除当前 `effect`, 相当于断开所有, 一般也会执行到这个方法, 这个只有在 嵌套层级的深度超过了 `maxMarkerBits` 才会执行
 
 ---
+
+### finalizeDepMarkers
+
+```typescript
+export const finalizeDepMarkers = (effect: ReactiveEffect) => {
+  const { deps } = effect;
+  if (deps.length) {
+    let ptr = 0;
+    for (let i = 0; i < deps.length; i++) {
+      const dep = deps[i];
+      if (wasTracked(dep) && !newTracked(dep)) {
+        dep.delete(effect);
+      } else {
+        deps[ptr++] = dep;
+      }
+      dep.w &= ~trackOpBit;
+      dep.n &= ~trackOpBit;
+    }
+    deps.length = ptr;
+  }
+};
+```
+
+`dep.w &= ~trackOpBit` 这个操作其实归零(重置), 举个例子就是这样: `0 | 4 & ~4`
+
+首先 `dep` 是 `key` 对应的 `effect` 的 `Set` 集合, `dep.delete(effect);` 那么这行代码就是清除 `无用的 effect`, 看它的判断条件
+满足 `wasTracked` 和不满足 `newTracked`, 下面我们去看这两个方法
+
+#### wasTracked, newTracked
+
+```typescript
+export const wasTracked = (dep: Dep): boolean => (dep.w & trackOpBit) > 0;
+export const newTracked = (dep: Dep): boolean => (dep.n & trackOpBit) > 0;
+```
+
+`dep` 上的 `n` 和 `w` 分别与 `trackOpBit` 按位与(&), 只要 `同位为 1`,那么结果就不会为 0, 看见 `trackOpBit`, 我们是不是想起来在 `track` 的时候是不是有过看下面代码:
+
+```typescript
+export function trackEffects(
+  dep: Dep,
+  debuggerEventExtraInfo?: DebuggerEventExtraInfo,
+) {
+  if (effectTrackDepth <= maxMarkerBits) {
+    if (!newTracked(dep)) {
+      dep.n |= trackOpBit;
+      shouldTrack = !wasTracked(dep);
+    }
+  }
+  /** */
+}
+```
+
+是不是只要触发了 `收集依赖` 就会让 `dep.n` 与 `trackOpBit` 执行按位或, 这样是不是就保证了 `newTracked` 一定是 `true`, 那么 `dep.w` 是哪里处理的呢? 记不记得 `finalizeDepMarkers` 之前还有个 `initDepMarkers`, 答案就是 它了
+
+#### initDepMarkers
+
+```typescript
+export const initDepMarkers = ({ deps }: ReactiveEffect) => {
+  if (deps.length) {
+    for (let i = 0; i < deps.length; i++) {
+      deps[i].w |= trackOpBit;
+    }
+  }
+};
+```
+
+这里就让 `dep.w` 与 `trackOpBit` 按位或了, 这样也就保证了 `wasTracked` 为 `true`
+
+---
+
+## stop
+
+---
+
+## effect
+
+---
+
+# 总结
+
+1. `targetMap` 中 保存着 `target` 与 `depsMap` 的依赖关系, `depsMap` 中保存着 `key` 与 `dep` 的关系, `dep` 是存放 `effect` 的 `Set集合`, 上面还有两个属性一个 `n` 和 `w` 分别代表 新收集的 和 已经收集过的
+2. `ReactiveEffect` 的 `run` 方法通过使用 `this.parent` 实现 `嵌套`, 通过 `initDepMarkers` 修改 `dep.w`, 然后配合 `track` 中 会修改 `dep.n`, 最后通过 `finalizeDepMarkers` 达到 清除多余 `effect` 的功能
+3. `按位与(&)`: 相同位为 1 才为 1; `按位与(|)`: 有 1 就是 1; `n | bit &= ~bit`: 重置操作
