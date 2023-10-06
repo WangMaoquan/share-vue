@@ -19,4 +19,16 @@
 
 ### runtime-core
 
+- [ ] createApp
+- [ ] renderer
+- [ ] h
+- [ ] defineComponent
+- [ ] element mount
+- [ ] component mount
+- [ ] element update
+- [ ] component update
+- [ ] scheduler
+- [ ] unmounted
+- [ ] watch
+
 ### complie-core
