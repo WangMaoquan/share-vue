@@ -14,8 +14,8 @@
 - [x] effectScope
 - [x] reactive
 - [x] ref
-- [ ] effect
-- [ ] computed
+- [x] effect
+- [x] computed
 
 ### runtime-core
 
