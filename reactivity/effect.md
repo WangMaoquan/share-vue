@@ -477,6 +477,31 @@ export function stop(runner: ReactiveEffectRunner) {
 
 ## effect
 
+接受一个 `方法` 只要在 `方法` 中 访问 `响应式对象的属性`, 那么该 `effect` 就能被 `dep` 收集, 然后 在修改`响应式对象`时, 我们传入的方法就会再次执行, 还接受一个 `options`: `{ lazy, scheduler, scope, allowRecurse, onStop}` 有几个属性 `ReactiveEffect` 所以就说说 `lazy`, 谈起`lazy` 也就是 `惰性`, 然后我就想起了 `computed`, 在这里也有那味, 就是不会 `立刻执行`, 而是通过 `effect` 返回值 `runner` 来执行
+
+```typescript
+export function effect<T = any>(
+  fn: () => T,
+  options?: ReactiveEffectOptions,
+): ReactiveEffectRunner {
+  if ((fn as ReactiveEffectRunner).effect instanceof ReactiveEffect) {
+    fn = (fn as ReactiveEffectRunner).effect.fn;
+  }
+
+  const _effect = new ReactiveEffect(fn);
+  if (options) {
+    extend(_effect, options);
+    if (options.scope) recordEffectScope(_effect, options.scope);
+  }
+  if (!options || !options.lazy) {
+    _effect.run();
+  }
+  const runner = _effect.run.bind(_effect) as ReactiveEffectRunner;
+  runner.effect = _effect;
+  return runner;
+}
+```
+
 ---
 
 # 总结
