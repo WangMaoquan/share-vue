@@ -431,6 +431,48 @@ export const initDepMarkers = ({ deps }: ReactiveEffect) => {
 
 ## stop
 
+```typescript
+class ReactiveEffect {
+  stop() {
+    if (activeEffect === this) {
+      this.deferStop = true;
+    } else if (this.active) {
+      cleanupEffect(this);
+      if (this.onStop) {
+        this.onStop();
+      }
+      this.active = false;
+    }
+  }
+}
+```
+
+`deferStop` 也就只有在 自己 `stop` 自己的时候才会赋值, 我们看下面的例子
+
+```typescript
+const c = ref(true);
+const runner = effect(() => {
+  if (!c.value) {
+    stop(runner);
+  }
+});
+c.value = !c.value;
+```
+
+因为 没有将 `w,n` 复原, 也就是没有执行 `finalizeDepMarkers`, 比如下面这个例子
+
+`c` 中的 `dep` 存放的是不是 `runnerEffect`, 然后我们执行 `修改` 的操作, 是不是会执行我们注册的回调, 然后会给这个 `dep.w` 与 `trackOpBit` 执行 `按位与`, 然后再执行到 `if(!c.value)` 读取, 这时候是不是会 让 `dep.n` 与 `trackOpBit` 执行 `按位与`
+然后我们执行到了 `stop`
+
+```typescript
+export function stop(runner: ReactiveEffectRunner) {
+  runner.effect.stop();
+}
+```
+
+我们可以看出来其实就是执行的 `effect.stop`, 如果没有 `this === activeEffect`, 我们就会执行 `cleanupEffect`, 但是这个方法是不会让 `dep` 的 `w,n` 复原, 没有复原下次再触发 `w,n`的对应的层级其实就变了, `trackOpBit` 还能代表嵌套的层级
+同时我们还注意到 此时 `run` 其实还没执行完(finally 还未), 所以我们需要 `deferStop`, 即在 `finally` 执行 `stop`
+
 ---
 
 ## effect
