@@ -314,3 +314,11 @@ const shallowUnwrapHandlers: ProxyHandler<any> = {
 而 `shallowUnwrapHandlers` 的 `get` 就是我们不用在 模板中访问 `Ref` 时, 加上 `.value` 的原因
 
 ---
+
+# 总结
+
+1. `ref` 主要用来处理 `基础数据类型`, 也兼容了 `引用数据类型`, 所以需要 `_rawValue`
+2. `ref` 的依赖收集 主要存放在 自身的 `dep` 属性上, 因为它没有 `targetMap` 来保存, 其实是没有必要, 毕竟访问的 `key` 只有 `value`
+3. `customRef` 主要的原理就是 将 `track/trigger` 暴露(通过函数传入), 达到让用户来控制 `track/trigger` 时机
+4. `toRef/toRefs` 本质其实就是 访问 `.value` 的时候, 触发 传入的响应式对象的 `getter`
+5. `proxyRefs` 是我们在 `template` 中 访问 `ref` 不需要 `.value` 的实现
