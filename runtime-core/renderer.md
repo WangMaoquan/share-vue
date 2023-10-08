@@ -506,4 +506,64 @@ const app = {
 
 #### mount
 
+app 的挂载方法
+
+```typescript
+const app = {
+  mount(rootContainer: HostElement, isHydrate?: boolean, isSVG?: boolean): any {
+    if (!isMounted) {
+      if (__DEV__ && (rootContainer as any).__vue_app__) {
+        warn(
+          `There is already an app instance mounted on the host container.\n` +
+            ` If you want to mount another app on the same host container,` +
+            ` you need to unmount the previous app by calling \`app.unmount()\` first.`,
+        );
+      }
+      /** render */
+      isMounted = true;
+      app._container = rootContainer;
+      return getExposeProxy(vnode.component!) || vnode.component!.proxy;
+    } else if (__DEV__) {
+      warn(
+        `App has already been mounted.\n` +
+          `If you want to remount the same app, move your app creation logic ` +
+          `into a factory function and create fresh app instances for each ` +
+          `mount - e.g. \`const createMyApp = () => createApp(App)\``,
+      );
+    }
+  },
+};
+```
+
+1. 判断 `rootContainer` 是否已经挂载
+2. 调用 `render` 这里的 `render` 是 `createAppAPI` 传入的
+3. `isMounted` 为 true
+4. `app._container` 赋值为 rootContainer, 这里 `rootContainer` 其实就是我们的 `document.querySelector('#app')`
+
+---
+
+app 的卸载方法
+
+#### unmount
+
+```typescript
+const app = {
+  unmount() {
+    if (isMounted) {
+      render(null, app._container);
+      delete app._container.__vue_app__;
+    } else if (__DEV__) {
+      warn(`Cannot unmount an app that is not mounted.`);
+    }
+  },
+};
+```
+
+1. 调用 `render` 卸载
+2. 删除 `app._container.__vue_app__`
+
+---
+
+#### provide
+
 ---
