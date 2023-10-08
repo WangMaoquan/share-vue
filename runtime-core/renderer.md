@@ -566,4 +566,42 @@ const app = {
 
 #### provide
 
+```typescript
+const app = {
+  provide(key, value) {
+    if (__DEV__ && (key as string | symbol) in context.provides) {
+      warn(
+        `App already provides property with key "${String(key)}". ` +
+          `It will be overwritten with the new value.`,
+      );
+    }
+
+    context.provides[key as string | symbol] = value;
+
+    return app;
+  },
+};
+```
+
+保存在 `context.provides` 上
+
+---
+
+#### runWithContext
+
+```typescript
+const app = {
+  runWithContext(fn) {
+    currentApp = app;
+    try {
+      return fn();
+    } finally {
+      currentApp = null;
+    }
+  },
+};
+```
+
+确保某些 `api` 能够在 `非setup` 环境中运行, 详细可以件这个 [pull](https://github.com/vuejs/core/pull/7451)
+
 ---
