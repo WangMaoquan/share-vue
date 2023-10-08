@@ -33,8 +33,47 @@ const nodeOps = {
 
 ---
 
-## baseCreateRenderer
+## createRenderer
+
+下面我们进入 `createRenderer` 这个方法
 
 ```typescript
-
+export function createRenderer<
+  HostNode = RendererNode,
+  HostElement = RendererElement,
+>(options: RendererOptions<HostNode, HostElement>) {
+  return baseCreateRenderer<HostNode, HostElement>(options);
+}
 ```
+
+可以看出最主要的是调用了 `baseCreateRenderer`, 这里我再介绍下 `RendererOptions`, 这个类型 其实就是我们要在 `不同平台` 需要实现的 配置对象
+
+```typescript
+export interface RendererOptions<
+  HostNode = RendererNode,
+  HostElement = RendererElement,
+> {
+  patchProp(/** */): void; // 处理 props 的 添加/更新/删除
+  insert(/** */): void; // 插入节点
+  remove(el: HostNode): void; // 删除节点
+  createElement(/** */): HostElement; // 创建元素
+  createText(text: string): HostNode; // 创建文本
+  createComment(text: string): HostNode; // 创建注释
+  setText(node: HostNode, text: string): void; // 设置文本
+  setElementText(node: HostElement, text: string): void; // 设置元素文本
+  parentNode(node: HostNode): HostElement | null; // 获取父级节点
+  nextSibling(node: HostNode): HostNode | null; // 获取下一个兄弟节点
+  querySelector?(selector: string): HostElement | null; // 查询元素
+  setScopeId?(el: HostElement, id: string): void; // 设置scopeId
+  cloneNode?(node: HostNode): HostNode; // 克隆元素
+  insertStaticContent?(/** */): [HostNode, HostNode]; // 插入静态内容
+}
+```
+
+下面我们开始介绍 `baseCreateRenderer`
+
+---
+
+### baseCreateRenderer
+
+---
