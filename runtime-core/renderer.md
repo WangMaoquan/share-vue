@@ -375,3 +375,135 @@ export function createAppContext(): AppContext {
 - `optionsCache/propsCache/emitsCache`: 对应的缓存
 
 ---
+
+#### config
+
+```typescript
+const app = {
+  get config() {
+    return context.config;
+  },
+  set config(v) {
+    if (__DEV__) {
+      warn(`app.config cannot be replaced. Modify individual options instead.`);
+    }
+  },
+};
+```
+
+获取/配置 `context.config`
+
+---
+
+#### use
+
+```typescript
+const app = {
+  use(plugin: Plugin, ...options: any[]) {
+    if (installedPlugins.has(plugin)) {
+      __DEV__ && warn(`Plugin has already been applied to target app.`);
+    } else if (plugin && isFunction(plugin.install)) {
+      installedPlugins.add(plugin);
+      plugin.install(app, ...options);
+    } else if (isFunction(plugin)) {
+      installedPlugins.add(plugin);
+      plugin(app, ...options);
+    } else if (__DEV__) {
+      warn(
+        `A plugin must either be a function or an object with an "install" ` +
+          `function.`,
+      );
+    }
+    return app;
+  },
+};
+```
+
+实现也很简单
+
+1. 判断是否注册
+2. 判断 `plugin` 是否满足: 是一个 `方法` 或者 是一个实现了 `install` 方法的 `对象`
+3. 添加进 `installedPlugins`, 然后执行
+
+---
+
+#### mixin
+
+```typescript
+const app = {
+  mixin(mixin: ComponentOptions) {
+    if (__FEATURE_OPTIONS_API__) {
+      if (!context.mixins.includes(mixin)) {
+        context.mixins.push(mixin);
+      } else if (__DEV__) {
+        warn(
+          'Mixin has already been applied to target app' +
+            (mixin.name ? `: ${mixin.name}` : ''),
+        );
+      }
+    } else if (__DEV__) {
+      warn('Mixins are only available in builds supporting Options API');
+    }
+    return app;
+  },
+};
+```
+
+混入是 `vue2.x` 的, 其实 `3.x` 没必要使用, 所以 `compositionApi` 情况下使用 `mixin` 会给个警告
+
+`mixin` 会导致 变量重名/来源不确定 进而不好调试..
+
+---
+
+#### component
+
+```typescript
+const app = {
+  component(name: string, component?: Component): any {
+    if (__DEV__) {
+      validateComponentName(name, context.config);
+    }
+    if (!component) {
+      return context.components[name];
+    }
+    if (__DEV__ && context.components[name]) {
+      warn(`Component "${name}" has already been registered in target app.`);
+    }
+    context.components[name] = component;
+    return app;
+  },
+};
+```
+
+`component` 只传一个参数就是获取全局组件, 传两个参数就是注册全局组件, 获取或者注册从`context.components` 获取或者注册
+
+---
+
+#### directive
+
+```typescript
+const app = {
+  directive(name: string, directive?: Directive) {
+    if (__DEV__) {
+      validateDirectiveName(name);
+    }
+
+    if (!directive) {
+      return context.directives[name] as any;
+    }
+    if (__DEV__ && context.directives[name]) {
+      warn(`Directive "${name}" has already been registered in target app.`);
+    }
+    context.directives[name] = directive;
+    return app;
+  },
+};
+```
+
+`directive` 只传一个参数就是获取全局指令, 传两个参数就是注册全局指令, 获取或者注册从`context.directives` 获取或者注册
+
+---
+
+#### mount
+
+---
