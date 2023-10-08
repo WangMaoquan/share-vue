@@ -248,4 +248,92 @@ function baseCreateRenderer(
 
 ## createAppAPI
 
+同样的理由 `createAppAPI` 也要针对 `不同平台`
+
+```typescript
+export function createAppAPI<HostElement>(
+  render: RootRenderFunction<HostElement>,
+  hydrate?: RootHydrateFunction,
+): CreateAppFunction<HostElement> {
+  return function createApp(rootComponent, rootProps = null) {
+    /** */
+  };
+}
+```
+
+主要就是返回 `createApp` 方法
+
+---
+
+### createApp
+
+这个方法返回的 `app` 其实也就是 我们通常使用时的 `app`, 也就是实现了 `use`, `mount`, `unmount`, `component`, `directive`, 下面看看内部实现
+
+```typescript
+function createApp(rootComponent, rootProps = null) {
+  if (!isFunction(rootComponent)) {
+    rootComponent = extend({}, rootComponent);
+  }
+  if (rootProps != null && !isObject(rootProps)) {
+    __DEV__ && warn(`root props passed to app.mount() must be an object.`);
+    rootProps = null;
+  }
+  const context = createAppContext();
+  /** */
+  const installedPlugins = new Set();
+  let isMounted = false;
+  const app: App = (context.app = {
+    _uid: uid++,
+    _component: rootComponent as ConcreteComponent,
+    _props: rootProps,
+    _container: null,
+    _context: context,
+    _instance: null,
+    version,
+    get config() {
+      /** */
+    },
+    set config(v) {
+      /** */
+    },
+    use(plugin: Plugin, ...options: any[]) {
+      /** */
+    },
+    mixin(mixin: ComponentOptions) {
+      /** */
+    },
+    component(name: string, component?: Component): any {
+      /** */
+    },
+    directive(name: string, directive?: Directive) {
+      /** */
+    },
+    mount(/** */): any {
+      /** */
+    },
+    unmount() {
+      /** */
+    },
+    provide(key, value) {
+      /** */
+    },
+    runWithContext(fn) {
+      /** */
+    },
+  });
+  if (__COMPAT__) {
+    installAppCompatProperties(app, context, render);
+  }
+  return app;
+}
+```
+
+干得事情不复杂
+
+1. 处理 `rootComponent, rootProps` 两个参数
+2. 初始化 `context` 全局上下文对象, `installedPlugins` 已经注册过的插件集合, `isMounted`: `app` 是否挂载挂载的标记
+3. 初始化 `app`, 并初始化 `context.app`
+4. `__COMPAT__`下兼容
+5. 返回 `app`
+
 ---
