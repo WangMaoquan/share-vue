@@ -337,3 +337,41 @@ function createApp(rootComponent, rootProps = null) {
 5. 返回 `app`
 
 ---
+
+#### createAppContext
+
+让我们看看 `context` 上都有啥
+
+```typescript
+export function createAppContext(): AppContext {
+  return {
+    app: null as any,
+    config: {
+      isNativeTag: NO,
+      performance: false,
+      globalProperties: {},
+      optionMergeStrategies: {},
+      errorHandler: undefined,
+      warnHandler: undefined,
+      compilerOptions: {},
+    },
+    mixins: [],
+    components: {},
+    directives: {},
+    provides: Object.create(null),
+    optionsCache: new WeakMap(),
+    propsCache: new WeakMap(),
+    emitsCache: new WeakMap(),
+  };
+}
+```
+
+- `app`: 存放当前 `app` 的
+- `config`: 一些用户自定义配置, 比如 `globalProperties` 存放公共方法的, 类比 `vue2.x` 挂载在原型链上的
+- `mixins`: 保存着调用 `app.mixin` 注册的混入
+- `components`: 保存着调用 `app.component` 注册的全局组件
+- `directives`: 保存着调用 `app.directives` 注册的全局指令
+- `provides`: 保存着 `app.provider` 提供的
+- `optionsCache/propsCache/emitsCache`: 对应的缓存
+
+---
