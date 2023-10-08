@@ -76,4 +76,176 @@ export interface RendererOptions<
 
 ### baseCreateRenderer
 
+```typescript
+function baseCreateRenderer<
+  HostNode = RendererNode,
+  HostElement = RendererElement,
+>(options: RendererOptions<HostNode, HostElement>): Renderer<HostElement>;
+
+function baseCreateRenderer(
+  options: RendererOptions<Node, Element>,
+  createHydrationFns: typeof createHydrationFunctions,
+): HydrationRenderer;
+function baseCreateRenderer(
+  options: RendererOptions,
+  createHydrationFns?: typeof createHydrationFunctions,
+): any {
+  /** */
+  const {
+    insert: hostInsert,
+    remove: hostRemove,
+    patchProp: hostPatchProp,
+    createElement: hostCreateElement,
+    createText: hostCreateText,
+    createComment: hostCreateComment,
+    setText: hostSetText,
+    setElementText: hostSetElementText,
+    parentNode: hostParentNode,
+    nextSibling: hostNextSibling,
+    setScopeId: hostSetScopeId = NOOP,
+    insertStaticContent: hostInsertStaticContent,
+  } = options;
+
+  const patch: PatchFn = (/** */) => {
+    /** */
+  };
+
+  const processText: ProcessTextOrCommentFn = (n1, n2, container, anchor) => {
+    /** */
+  };
+
+  const processCommentNode: ProcessTextOrCommentFn = (/** */) => {
+    /** */
+  };
+
+  const mountStaticNode = (/** */) => {
+    /** */
+  };
+  const patchStaticNode = (/** */) => {
+    /** */
+  };
+
+  const moveStaticNode = (/** */) => {
+    /** */
+  };
+
+  const removeStaticNode = ({ el, anchor }: VNode) => {
+    /** */
+  };
+
+  const processElement = (/** */) => {
+    /** */
+  };
+
+  const mountElement = (/** */) => {
+    /** */
+  };
+
+  const setScopeId = (/** */) => {
+    /** */
+  };
+
+  const mountChildren: MountChildrenFn = (/** */) => {
+    /** */
+  };
+
+  const patchElement = (/** */) => {
+    /** */
+  };
+
+  const patchBlockChildren: PatchBlockChildrenFn = (/** */) => {
+    /** */
+  };
+
+  const patchProps = (/** */) => {
+    /** */
+  };
+
+  const processFragment = (/** */) => {
+    /** */
+  };
+
+  const processComponent = (/** */) => {
+    /** */
+  };
+
+  const mountComponent: MountComponentFn = (/** */) => {
+    /** */
+  };
+
+  const updateComponent = (n1: VNode, n2: VNode, optimized: boolean) => {
+    /** */
+  };
+
+  const setupRenderEffect: SetupRenderEffectFn = (/** */) => {
+    /** */
+  };
+
+  const updateComponentPreRender = (/** */) => {
+    /** */
+  };
+
+  const patchChildren: PatchChildrenFn = (/** */) => {
+    /** */
+  };
+
+  const patchUnkeyedChildren = (/** */) => {
+    /** */
+  };
+
+  const patchKeyedChildren = (/** */) => {
+    /** */
+  };
+
+  const move: MoveFn = (/** */) => {
+    /** */
+  };
+
+  const unmount: UnmountFn = (/** */) => {
+    /** */
+  };
+
+  const remove: RemoveFn = (vnode) => {
+    /** */
+  };
+
+  const removeFragment = (cur: RendererNode, end: RendererNode) => {
+    /** */
+  };
+
+  const unmountComponent = (/** */) => {
+    /** */
+  };
+
+  const unmountChildren: UnmountChildrenFn = (/** */) => {
+    /** */
+  };
+
+  const getNextHostNode: NextFn = (vnode) => {
+    /** */
+  };
+
+  const render: RootRenderFunction = (vnode, container, isSVG) => {
+    /** */
+  };
+  /** 处理 hydrate*/
+  return {
+    render,
+    hydrate,
+    createApp: createAppAPI(render, hydrate),
+  };
+}
+```
+
+代码很多, 我们看看目前我们关心的部分:
+
+1. 处理 `RendererOptions`: 通过解构 将 `RendererOptions` 中的方法拿出来, 用于后面处理时直接调用
+2. 返回值: 返回的是一个对象, 包含了 `render, createApp` 方法, 另外 通过闭包创建了 一堆 `renderer` 内部处理的 方法, 看方法名我们大概也能知道是干啥的, 比如 `processXxx` 专门处理 `Xxx` 的, `mountXxx` 挂载 `Xxx`, `patchXxx` 针对 `Xxx` 执行 `patch`
+
+这里的 `createApp`, 我们其实可以知道了, app 实例是怎么来的了 `createAppAPI`
+
+---
+
+## createAppAPI
+
 ---
