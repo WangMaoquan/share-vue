@@ -621,7 +621,7 @@ console.log(couter);
 
 ---
 
-## createApp
+# createApp
 
 之前我们可以看出 `createApp` 只是接受一个 `挂载元素`, 但是具体怎么获取 `挂载元素` 是不是没有实现? 这是为啥? `多平台`, 所以我们看看 `浏览器平台` 的实现, 也就是我们最常用的 `createApp`
 
@@ -654,5 +654,36 @@ export const createApp = ((...args) => {
 
 本质还是调用 `renderer.createApp.render`, 返回我们属性的 `app`,
 `const { mount } = app; app.mount = function () {}`, 熟悉保存原来的, 自己定义一个根据平台来的, 然后在 `内部调用` 原来的 `mount`
+
+---
+
+# h
+
+`h` 这个方法, 在 `vue2.x` 可能大家用的不多, 它是在 `render(h){}` 的第一个参数就是 `h`, 作用就是创建对应的 `vnode`
+
+```typescript
+export function h(type: any, propsOrChildren?: any, children?: any): VNode {
+  const l = arguments.length;
+  if (l === 2) {
+    if (isObject(propsOrChildren) && !isArray(propsOrChildren)) {
+      if (isVNode(propsOrChildren)) {
+        return createVNode(type, null, [propsOrChildren]);
+      }
+      return createVNode(type, propsOrChildren);
+    } else {
+      return createVNode(type, null, propsOrChildren);
+    }
+  } else {
+    if (l > 3) {
+      children = Array.prototype.slice.call(arguments, 2);
+    } else if (l === 3 && isVNode(children)) {
+      children = [children];
+    }
+    return createVNode(type, propsOrChildren, children);
+  }
+}
+```
+
+主要作用就是处理好 `参数` 然后传给 `createVNode`
 
 ---
