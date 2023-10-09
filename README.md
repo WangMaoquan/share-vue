@@ -19,8 +19,8 @@
 
 ### runtime-core
 
-- [ ] renderer
-- [ ] createApp
+- [x] renderer
+- [x] createApp
 - [ ] h
 - [ ] defineComponent
 - [ ] element mount
