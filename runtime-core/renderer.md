@@ -604,4 +604,19 @@ const app = {
 
 确保某些 `api` 能够在 `非setup` 环境中运行, 详细可以件这个 [pull](https://github.com/vuejs/core/pull/7451)
 
+拿`pinia` 举例, 代码位置在 `createSetupStore` 中
+
+```typescript
+const runWithContext =
+  (pinia._a && pinia._a.runWithContext) || fallbackRunWithContext;
+```
+
+`createSetupStore` 是在 `useStore` 里面调用的, 所以我们可以 `main.ts` 中这么用
+
+```typescript
+import { useCounter } from './store';
+const couter = useCounter();
+console.log(couter);
+```
+
 ---
