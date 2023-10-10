@@ -20,8 +20,130 @@ count.value++;
 
 我们需要需要哪些东西? 保存任务的 `queue`, 标记当前正在执行 `queue` 中任务的标记, 等等
 
-```javascript
+## 全局定义
 
+```typescript
+export type SchedulerJobs = SchedulerJob | SchedulerJob[];
+let isFlushing = false; // 是否正在执行的标志
+let isFlushPending = false; // 是否正在等待执行的标志
+const queue: SchedulerJob[] = []; // 保存任务队列
+let flushIndex = 0; // 执行 job 的 在 queue 中下标
+const resolvedPromise = /*#__PURE__*/ Promise.resolve() as Promise<any>; // resolve Promise
+let currentFlushPromise: Promise<void> | null = null; // 当前正在 等待的 Promise
+const RECURSION_LIMIT = 100; // 递归限制
+type CountMap = Map<SchedulerJob, number>; // 递归次数的map
+```
+
+## 添加进队列的方法 queueoJob
+
+```typescript
+export function queueJob(job: SchedulerJob) {
+  // queue 为空 或者 该job 没有进 queue, 或者 该 job 允许递归
+  if (
+    !queue.length ||
+    !queue.includes(
+      job,
+      isFlushing && job.allowRecurse ? flushIndex + 1 : flushIndex,
+    )
+  ) {
+    // 不存在 id 直接push
+    if (job.id == null) {
+      queue.push(job);
+    } else {
+      // 存在 id 找到插入的位置
+      queue.splice(findInsertionIndex(job.id), 0, job);
+    }
+    queueFlush();
+  }
+}
+```
+
+**findInsertionIndex**
+
+```typescript
+function findInsertionIndex(id: number) {
+  let start = flushIndex + 1;
+  let end = queue.length;
+  while (start < end) {
+    const middle = (start + end) >>> 1;
+    const middleJobId = getId(queue[middle]);
+    middleJobId < id ? (start = middle + 1) : (end = middle);
+  }
+
+  return start;
+}
+```
+
+一眼 `二分查找`
+
+---
+
+## queueFlush
+
+```typescript
+function queueFlush() {
+  if (!isFlushing && !isFlushPending) {
+    isFlushPending = true;
+    currentFlushPromise = resolvedPromise.then(flushJobs);
+  }
+}
+```
+
+---
+
+## flushJobs
+
+```typescript
+function flushJobs(seen?: CountMap) {
+  isFlushPending = false;
+  isFlushing = true;
+  if (__DEV__) {
+    seen = seen || new Map();
+  }
+  queue.sort(comparator);
+  const check = __DEV__
+    ? (job: SchedulerJob) => checkRecursiveUpdates(seen!, job)
+    : NOOP;
+
+  try {
+    for (flushIndex = 0; flushIndex < queue.length; flushIndex++) {
+      const job = queue[flushIndex];
+      if (job && job.active !== false) {
+        if (__DEV__ && check(job)) {
+          continue;
+        }
+        callWithErrorHandling(job, null, ErrorCodes.SCHEDULER);
+      }
+    }
+  } finally {
+    flushIndex = 0;
+    queue.length = 0;
+    flushPostFlushCbs(seen);
+    isFlushing = false;
+    currentFlushPromise = null;
+    if (queue.length || pendingPostFlushCbs.length) {
+      flushJobs(seen);
+    }
+  }
+}
+```
+
+---
+
+### comparator
+
+```typescript
+const getId = (job: SchedulerJob): number =>
+  job.id == null ? Infinity : job.id;
+
+const comparator = (a: SchedulerJob, b: SchedulerJob): number => {
+  const diff = getId(a) - getId(b);
+  if (diff === 0) {
+    if (a.pre && !b.pre) return -1;
+    if (b.pre && !a.pre) return 1;
+  }
+  return diff;
+};
 ```
 
 ---
