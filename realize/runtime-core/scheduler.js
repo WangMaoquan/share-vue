@@ -28,3 +28,20 @@ const queueJob = (job) => {
   }
   queueFlush();
 };
+
+function test() {
+  const job1 = () => {
+    console.log('job1');
+  };
+  const job2 = () => {
+    console.log('job2');
+  };
+  const job3 = () => {
+    console.log('job3');
+  };
+  queueJob(job1);
+  queueJob(job2);
+  queueJob(job3);
+}
+
+test();
