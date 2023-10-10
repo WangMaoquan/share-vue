@@ -128,6 +128,13 @@ function flushJobs(seen?: CountMap) {
 }
 ```
 
+主要做的
+
+1. 恢复 `isFlushPending`, 修改 `isFlushing`
+2. `queue` 排序, `id` 从小到大, `updateEffect` 应该是由 `父到子`, 
+3. 循环执行 `queue` 中的 `job`
+4. 恢复 `flushIndex`, 清空 `queue`, 恢复 `isFlushing`, 重置 `currentFlushPromise`
+
 ---
 
 ### comparator
