@@ -56,11 +56,16 @@ class ReactiveEffect {
   constructor(fn, scheduler) {
     this.fn = fn;
     this.scheduler = scheduler;
+    this.parent = undefined;
   }
 
   run() {
-    activeEffect = this;
-    return this.fn();
+    try {
+      activeEffect = this;
+      return this.fn();
+    } finally {
+      activeEffect = undefined;
+    }
   }
 }
 
@@ -92,20 +97,27 @@ function trigger(target, key) {
   const deps = depsMap.get(key);
   const effects = [...deps];
   for (let i = 0; i < effects.length; i++) {
-    effects[i].run();
+    const effect = effects[i];
+    if (effect !== activeEffect) {
+      effect.run();
+    }
   }
 }
 
 /** test */
 
 function test() {
-  const state = reactive({
+  const origin = {
     name: 'decade',
     age: 21,
-  });
+  };
+  const state = reactive(origin);
+  const state1 = reactive(origin);
+  console.log(state === state1);
 
-  effect(() => console.log(state.age));
-  state.age = 20;
+  effect(() => {
+    state.age++;
+  });
 }
 
 test();
