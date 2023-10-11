@@ -72,7 +72,11 @@ class ReactiveEffect {
 function effect(fn, options) {
   const _effect = new ReactiveEffect(fn);
   Object.assign(_effect, options);
-  return _effect.run();
+  // 自己执行
+  _effect.run();
+  // 通过bind, 返回执行器
+  const effectRun = _effect.run.bind(_effect);
+  return effectRun;
 }
 
 function track(target, key) {
@@ -99,6 +103,7 @@ function trigger(target, key) {
   for (let i = 0; i < effects.length; i++) {
     const effect = effects[i];
     if (effect !== activeEffect) {
+      // 解决循环依赖
       effect.run();
     }
   }
@@ -115,9 +120,11 @@ function test() {
   const state1 = reactive(origin);
   console.log(state === state1);
 
-  effect(() => {
-    state.age++;
+  const effectRun = effect(() => {
+    console.log(state.age++);
   });
+
+  effectRun();
 }
 
 test();
