@@ -4,6 +4,10 @@ const hasOwn = Object.hasOwn;
 
 const isArray = Array.isArray;
 
+const ObjectToString = (value) => Object.prototype.toString.call(value);
+
+const isObject = (value) => ObjectToString(value) === '[object Object]';
+
 /** baseHandlers */
 
 const baseHandlers = {
@@ -15,6 +19,9 @@ const baseHandlers = {
     }
     const res = Reflect.get(target, key, reciver);
     track(target, key);
+    if (isObject(res)) {
+      return reactive(res);
+    }
     return res;
   },
   set(target, key, value, reciver) {
@@ -194,4 +201,15 @@ function testArray() {
   arr[4] = 1;
 }
 
-testArray();
+function nestObject() {
+  const state = reactive({
+    info: {
+      email: 'xxxx@qq.com',
+      desc: 'xxxx',
+    },
+  });
+
+  console.log(isReactive(state.info));
+}
+
+nestObject();
