@@ -2,6 +2,8 @@
 
 const hasOwn = Object.hasOwn;
 
+const isArray = Array.isArray;
+
 /** baseHandlers */
 
 const baseHandlers = {
@@ -16,9 +18,32 @@ const baseHandlers = {
     return res;
   },
   set(target, key, value, reciver) {
+    const hadKey = hasOwn(target, key);
+    const oldValue = target[key];
     const result = Reflect.set(target, key, value, reciver);
-    trigger(target, key);
+    if (!hadKey) {
+      trigger(target, 'add', key);
+    } else if (Object.is(value, oldValue)) {
+      trigger(target, 'set', key);
+    }
     return result;
+  },
+  has(target, key) {
+    const result = Reflect.has(target, key);
+    rack(target, 'has', key);
+    return result;
+  },
+  deleteProperty(target, key) {
+    const hadKey = hasOwn(target, key);
+    const result = Reflect.deleteProperty(target, key);
+    if (result && hadKey) {
+      trigger(target, 'delete', key);
+    }
+    return result;
+  },
+  ownKeys(target) {
+    track(target, 'iterator', isArray(target) ? 'length' : 'iterator_key');
+    return Reflect.ownKeys(target);
   },
 };
 
@@ -93,13 +118,45 @@ function track(target, key) {
   }
 }
 
-function trigger(target, key) {
+function trigger(target, type, key) {
   const depsMap = targetMap.get(target);
   if (!depsMap) {
     return;
   }
-  const deps = depsMap.get(key);
-  const effects = [...deps];
+  const deps = [];
+  if (key !== undefined) {
+    deps.push(depsMap.get(key));
+  }
+  switch (type) {
+    case 'add':
+      if (isArray(target)) {
+        // 数组的添加 会改变 长度
+        deps.push(depsMap.get('length'));
+      } else {
+        // 对象的key 值增加 会影响 遍历
+        deps.push(depsMap.get('iterator_key'));
+      }
+      break;
+    case 'delete':
+      if (!isArray(target)) {
+        deps.push(depsMap.get(ITERATE_KEY));
+      }
+      break;
+    case 'set':
+      // todo
+      break;
+  }
+  const flatDep = [];
+  for (const dep of deps) {
+    if (dep) {
+      flatDep.push(...dep);
+    }
+  }
+  tiggerEffects(flatDep);
+}
+
+function tiggerEffects(dep) {
+  const effects = [...dep];
   for (let i = 0; i < effects.length; i++) {
     const effect = effects[i];
     if (effect !== activeEffect) {
@@ -111,7 +168,7 @@ function trigger(target, key) {
 
 /** test */
 
-function test() {
+function testObject() {
   const origin = {
     name: 'decade',
     age: 21,
@@ -127,4 +184,14 @@ function test() {
   effectRun();
 }
 
-test();
+function testArray() {
+  const arr = reactive([1, 2, 3]);
+
+  effect(() => {
+    console.log(arr.length);
+  });
+
+  arr[4] = 1;
+}
+
+testArray();
