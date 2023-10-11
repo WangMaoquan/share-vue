@@ -79,6 +79,45 @@ function reactive(obj) {
   return createReactiveObject(obj);
 }
 
+function toReactive(value) {
+  return isObject(value) ? reactive(value) : value;
+}
+
+/** ref */
+
+class RefImpl {
+  constructor(value) {
+    // ref 标志
+    this.__is_ref = true;
+    // 存放依赖的 dep
+    // this.dep = [];
+    this._rawValue = value;
+    this._value = toReactive(value);
+  }
+  get value() {
+    // todo track
+    return this._value;
+  }
+  set value(newValue) {
+    if (Object.is(newValue, this._rawValue)) {
+      this._rawValue = newValue;
+      this._value = toReactive(newValue);
+      // todo trigger
+    }
+  }
+}
+
+function ref(value) {
+  if (isRef(value)) {
+    return value;
+  }
+  return new RefImpl(value);
+}
+
+function isRef(value) {
+  return !!value['__is_ref'];
+}
+
 /** effect */
 
 const targetMap = new WeakMap();
