@@ -30,7 +30,7 @@ const baseHandlers = {
     const result = Reflect.set(target, key, value, reciver);
     if (!hadKey) {
       trigger(target, 'add', key);
-    } else if (Object.is(value, oldValue)) {
+    } else if (!Object.is(value, oldValue)) {
       trigger(target, 'set', key);
     }
     return result;
@@ -90,19 +90,19 @@ class RefImpl {
     // ref 标志
     this.__is_ref = true;
     // 存放依赖的 dep
-    // this.dep = [];
+    // this.dep = new Set();
     this._rawValue = value;
     this._value = toReactive(value);
   }
   get value() {
-    // todo track
+    trackRefValue(this);
     return this._value;
   }
   set value(newValue) {
-    if (Object.is(newValue, this._rawValue)) {
+    if (!Object.is(newValue, this._rawValue)) {
       this._rawValue = newValue;
       this._value = toReactive(newValue);
-      // todo trigger
+      triggerRefValue(this);
     }
   }
 }
@@ -116,6 +116,16 @@ function ref(value) {
 
 function isRef(value) {
   return !!value['__is_ref'];
+}
+
+function trackRefValue(ref) {
+  if (activeEffect) {
+    trackEffects((ref.dep = new Set()));
+  }
+}
+
+function triggerRefValue(ref) {
+  triggerEffects(ref.dep);
 }
 
 /** effect */
@@ -160,8 +170,12 @@ function track(target, key) {
     if (!deps) {
       depsMap.set(key, (deps = new Set()));
     }
-    deps.add(activeEffect);
+    trackEffects(deps);
   }
+}
+
+function trackEffects(deps) {
+  deps.add(activeEffect);
 }
 
 function trigger(target, type, key) {
@@ -198,10 +212,10 @@ function trigger(target, type, key) {
       flatDep.push(...dep);
     }
   }
-  tiggerEffects(flatDep);
+  triggerEffects(flatDep);
 }
 
-function tiggerEffects(dep) {
+function triggerEffects(dep) {
   const effects = [...dep];
   for (let i = 0; i < effects.length; i++) {
     const effect = effects[i];
@@ -251,4 +265,12 @@ function nestObject() {
   console.log(isReactive(state.info));
 }
 
-nestObject();
+// nestObject();
+
+function testRef() {
+  const count = ref(1);
+  effect(() => console.log(count.value));
+  count.value++;
+}
+
+testRef();
