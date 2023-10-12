@@ -187,7 +187,7 @@ function computed(getterOrOptions) {
   if (isFunction(getterOrOptions)) {
     getter = getterOrOptions;
     setter = (v) => {
-      console.log(`can not set value: ${value}`);
+      console.log(`can not set value: ${v}`);
     };
   } else {
     getter = getterOrOptions.get;
@@ -388,6 +388,8 @@ function testComputed() {
   count.value = 2;
   // 执行
   count.value = 3;
+
+  double.value = 2;
 }
 
 testComputed();
