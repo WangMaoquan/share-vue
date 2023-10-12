@@ -10,24 +10,45 @@ const isObject = (value) => ObjectToString(value) === '[object Object]';
 
 /** baseHandlers */
 
+function createArrayInstrumentations() {
+  const instrumentations = {};
+  // 这里注意不能用箭头函数, 不然this 就是 window
+  ['push', 'pop', 'splice', 'shift', 'unshift'].forEach(function (key) {
+    // 这里同理
+    instrumentations[key] = function (...args) {
+      pauseTracking();
+      // 我们需要的是 target[key] 所以需要 toRaw
+      const res = toRaw(this)[key].call(this, ...args);
+      enableTracking();
+      return res;
+    };
+  });
+  return instrumentations;
+}
+
+const arrayInstrumentations = createArrayInstrumentations();
+
 const baseHandlers = {
-  get(target, key, reciver) {
+  get(target, key, receiver) {
     if (key === '__raw') {
       return target;
     } else if (key === '__is_reactive') {
       return true;
     }
-    const res = Reflect.get(target, key, reciver);
+    if (isArray(target) && hasOwn(arrayInstrumentations, key)) {
+      return Reflect.get(arrayInstrumentations, key, receiver);
+    }
+    const res = Reflect.get(target, key, receiver);
     track(target, key);
     if (isObject(res)) {
       return reactive(res);
     }
     return res;
   },
-  set(target, key, value, reciver) {
+  set(target, key, value, receiver) {
     const hadKey = hasOwn(target, key);
     const oldValue = target[key];
-    const result = Reflect.set(target, key, value, reciver);
+    const result = Reflect.set(target, key, value, receiver);
     if (!hadKey) {
       trigger(target, 'add', key);
     } else if (!Object.is(value, oldValue)) {
@@ -83,6 +104,11 @@ function toReactive(value) {
   return isObject(value) ? reactive(value) : value;
 }
 
+function toRaw(value) {
+  const raw = value['__raw'];
+  return raw ? raw : value;
+}
+
 /** ref */
 
 class RefImpl {
@@ -131,7 +157,16 @@ function triggerRefValue(ref) {
 /** effect */
 
 const targetMap = new WeakMap();
-let activeEffect;
+let activeEffect,
+  shouldTrack = true; // 是否应该track 解决 数组改变自身的方法, 不然会导致爆栈
+
+function pauseTracking() {
+  shouldTrack = false;
+}
+
+function enableTracking() {
+  shouldTrack = true;
+}
 
 class ReactiveEffect {
   constructor(fn, scheduler) {
@@ -161,7 +196,7 @@ function effect(fn, options) {
 }
 
 function track(target, key) {
-  if (activeEffect) {
+  if (activeEffect && shouldTrack) {
     let depsMap = targetMap.get(target);
     if (!depsMap) {
       targetMap.set(target, (depsMap = new Map()));
@@ -281,4 +316,13 @@ function testRef() {
   console.log(isReactive(state.value));
 }
 
-testRef();
+// testRef();
+
+function testArrayChangeLengthMethod() {
+  const arr = reactive([1, 2]);
+  effect(() => console.log(arr.length));
+  arr.push(5);
+  effect(() => arr.push(4));
+}
+
+testArrayChangeLengthMethod();
