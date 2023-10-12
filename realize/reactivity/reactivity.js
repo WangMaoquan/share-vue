@@ -271,6 +271,14 @@ function testRef() {
   const count = ref(1);
   effect(() => console.log(count.value));
   count.value++;
+
+  const state = ref({
+    age: 10,
+  });
+  effect(() => console.log(state.value.age));
+  state.value.age++;
+
+  console.log(isReactive(state.value));
 }
 
 testRef();
