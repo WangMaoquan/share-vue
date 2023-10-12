@@ -161,14 +161,23 @@ class ComputedRefImpl {
     this._getter = getter;
     this._setter = setter;
     this.__is_ref = true;
+    // 是否需要执行 getter
+    this._dirty = true;
+    this.effect = new ReactiveEffect(getter, () => {
+      this._dirty = true;
+      triggerRefValue(this);
+    });
   }
 
   get value() {
-    // todo track
-    return this._getter();
+    trackRefValue(this);
+    if (this._dirty) {
+      this._value = this.effect.run();
+      this._dirty = false;
+    }
+    return this._value;
   }
   set value(value) {
-    // todo trigger
     return this._setter(value);
   }
 }
@@ -289,7 +298,11 @@ function triggerEffects(dep) {
     const effect = effects[i];
     if (effect !== activeEffect) {
       // 解决循环依赖
-      effect.run();
+      if (effect.scheduler) {
+        effect.scheduler();
+      } else {
+        effect.run();
+      }
     }
   }
 }
@@ -358,4 +371,22 @@ function testArrayChangeLengthMethod() {
   effect(() => arr.push(4));
 }
 
-testArrayChangeLengthMethod();
+// testArrayChangeLengthMethod();
+
+function testComputed() {
+  const count = ref(1);
+  const double = computed(() => {
+    console.log('double excu');
+    return count.value * 2;
+  });
+
+  effect(() => console.log('double', double.value));
+
+  count.value++;
+  // 没有变 不会执行
+  count.value = 2;
+  // 执行
+  count.value = 3;
+}
+
+testComputed();
