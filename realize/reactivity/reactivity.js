@@ -8,6 +8,8 @@ const ObjectToString = (value) => Object.prototype.toString.call(value);
 
 const isObject = (value) => ObjectToString(value) === '[object Object]';
 
+const isFunction = (value) => typeof value === 'function';
+
 /** baseHandlers */
 
 function createArrayInstrumentations() {
@@ -152,6 +154,37 @@ function trackRefValue(ref) {
 
 function triggerRefValue(ref) {
   triggerEffects(ref.dep);
+}
+
+class ComputedRefImpl {
+  constructor(getter, setter) {
+    this._getter = getter;
+    this._setter = setter;
+    this.__is_ref = true;
+  }
+
+  get value() {
+    // todo track
+    return this._getter();
+  }
+  set value(value) {
+    // todo trigger
+    return this._setter(value);
+  }
+}
+
+function computed(getterOrOptions) {
+  let getter, setter;
+  if (isFunction(getterOrOptions)) {
+    getter = getterOrOptions;
+    setter = (v) => {
+      console.log(`can not set value: ${value}`);
+    };
+  } else {
+    getter = getterOrOptions.get;
+    setter = getterOrOptions.set;
+  }
+  return new ComputedRefImpl(getter, setter);
 }
 
 /** effect */
