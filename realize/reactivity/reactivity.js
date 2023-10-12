@@ -148,7 +148,7 @@ function isRef(value) {
 
 function trackRefValue(ref) {
   if (activeEffect) {
-    trackEffects((ref.dep = new Set()));
+    trackEffects(ref.dep || (ref.dep = new Set()));
   }
 }
 
@@ -380,6 +380,7 @@ function testComputed() {
     return count.value * 2;
   });
 
+  effect(() => console.log('count', count.value));
   effect(() => console.log('double', double.value));
 
   count.value++;
