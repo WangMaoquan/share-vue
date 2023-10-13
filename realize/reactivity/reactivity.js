@@ -42,6 +42,9 @@ const baseHandlers = {
     }
     const res = Reflect.get(target, key, receiver);
     track(target, key);
+    if (isRef(res)) {
+      return isArray(target) ? res.value : res;
+    }
     if (isObject(res)) {
       return reactive(res);
     }
