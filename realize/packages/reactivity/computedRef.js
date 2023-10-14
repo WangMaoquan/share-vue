@@ -1,5 +1,5 @@
 import { triggerRefValue, trackRefValue } from './ref';
-import { isFunction } from '../../share/general';
+import { isFunction } from '../share/general';
 
 class ComputedRefImpl {
   constructor(getter, setter) {
