@@ -347,7 +347,7 @@ function createAppApi(render) {
       _instance: null,
 
       get config() {
-        return this._context.config;
+        return context.config;
       },
       set config(v) {
         console.warn('app config cannot set');
@@ -369,6 +369,24 @@ function createAppApi(render) {
           );
         }
       },
+
+      component(name, component) {
+        if (!component) {
+          return context.components[name];
+        } else {
+          context.components[name] = component;
+        }
+        return app;
+      },
+
+      directive(name, directive) {
+        if (!directive) {
+          return context.diresctive[name];
+        } else {
+          context.directives[name] = directive;
+        }
+        return app;
+      },
     };
     return app;
   };
@@ -381,7 +399,6 @@ function createContext() {
     provides: Object.create(null),
     components: {},
     directives: {},
-    mixins: [],
   };
 }
 
