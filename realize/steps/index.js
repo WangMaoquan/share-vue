@@ -337,4 +337,23 @@ function createAppApi(render) {
   };
 }
 
+/** h */
+
+function h(type, propsOrChildren, children) {
+  const len = arguments.length;
+  if (len === 2) {
+    if (!isArray(propsOrChildren) && isObject(propsOrChildren)) {
+      return createVNode(type, propsOrChildren);
+    } else {
+      return createVNode(type, null, [propsOrChildren]);
+    }
+  } else {
+    return createVNode(type, propsOrChildren, children);
+  }
+}
+
+/** vnode */
+
+function createVNode() {}
+
 /** runtime-core  end */
