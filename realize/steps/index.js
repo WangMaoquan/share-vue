@@ -354,6 +354,16 @@ function h(type, propsOrChildren, children) {
 
 /** vnode */
 
-function createVNode() {}
+function createVNode(type, props, children) {
+  return {
+    __v_isVNode: true,
+    __v_skip: true,
+    type,
+    props,
+    children,
+    component: null,
+    el: null,
+  };
+}
 
 /** runtime-core  end */
