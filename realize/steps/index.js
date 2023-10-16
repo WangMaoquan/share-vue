@@ -330,10 +330,58 @@ function createRenderer(rendererOptions) {
 }
 
 /** createAppApi */
+
+let uid = 0;
+
 function createAppApi(render) {
   return function createApp(rootComponent, rootProps) {
-    const app = {};
+    const context = createContext();
+    const installedPlugins = new Set();
+    let isMounted = false;
+    const app = {
+      isMounted,
+      _uid: uid++,
+      _props: rootProps,
+      _container: null,
+      _context: context,
+      _instance: null,
+
+      get config() {
+        return this._context.config;
+      },
+      set config(v) {
+        console.warn('app config cannot set');
+      },
+
+      use(plugin, ...options) {
+        if (installedPlugins.has(plugin)) {
+          console.warn('plugin has been used');
+        } else if (plugin && isFunction(plugin.install)) {
+          installedPlugins.add(plugin);
+          plugin.install(app, ...options);
+        } else if (isFunction(plugin)) {
+          installedPlugins.add(plugin);
+          plugin(app, ...options);
+        } else {
+          console.warn(
+            `A plugin must either be a function or an object with an "install" ` +
+              `function.`,
+          );
+        }
+      },
+    };
     return app;
+  };
+}
+
+function createContext() {
+  return {
+    app: null,
+    config: {},
+    provides: Object.create(null),
+    components: {},
+    directives: {},
+    mixins: [],
   };
 }
 
