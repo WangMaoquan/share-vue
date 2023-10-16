@@ -387,6 +387,28 @@ function createAppApi(render) {
         }
         return app;
       },
+
+      provide(key, value) {
+        context.provides[key] = value;
+        return app;
+      },
+
+      mount(rootContainer) {
+        if (!isMounted) {
+          // todo render
+          isMounted = true;
+          app._container = rootContainer;
+        } else {
+          console.warn(`App has already been mounted `);
+        }
+      },
+      unmount() {
+        if (isMounted) {
+          // todo
+        } else {
+          console.warn(`Cannot unmount an app that is not mounted.`);
+        }
+      },
     };
     return app;
   };
