@@ -320,8 +320,30 @@ function triggerEffects(dep) {
 function createRenderer(rendererOptions) {
   const {} = rendererOptions;
   // todo others methods
-  function render() {
-    // todo
+  function patch(oldVnode, newVnode, container) {
+    if (oldVnode === newVnode) {
+      return;
+    }
+    // 下面我们应该根据 vnode 的类型来处理对应的节点, 我们知道 vnode 有 type, 但是不够全, 我们还需要 shapeFlag
+    const { type, shapeFlag } = newVnode;
+    if (shapeFlag === ShapeFlags.ELEMENT) {
+      // todo 处理 element
+    } else if (
+      [ShapeFlags.STATEFUL_COMPONENT, ShapeFlags.FUNCTIONAL_COMPONENT].includes(
+        shapeFlag,
+      )
+    ) {
+      // todo 处理 component
+    }
+    // 处理 type
+  }
+
+  function render(vnode, container) {
+    if (vnode) {
+      // todo unmounted
+    } else {
+      patch(null, vnode, container);
+    }
   }
   return {
     render,
@@ -395,8 +417,12 @@ function createAppApi(render) {
 
       mount(rootContainer) {
         if (!isMounted) {
-          // todo render
+          // 创建我们的 根 vnode
+          const vnode = createVNode(rootComponent, rootProps);
+          // 执行 render
+          render(vnode, rootContainer);
           isMounted = true;
+          // 用于 umnount
           app._container = rootContainer;
         } else {
           console.warn(`App has already been mounted `);
@@ -404,7 +430,8 @@ function createAppApi(render) {
       },
       unmount() {
         if (isMounted) {
-          // todo
+          // 卸载
+          render(null, app._container);
         } else {
           console.warn(`Cannot unmount an app that is not mounted.`);
         }
@@ -441,7 +468,24 @@ function h(type, propsOrChildren, children) {
 
 /** vnode */
 
+var ShapeFlags = {
+  ELEMENT: 'element',
+  STATEFUL_COMPONENT: 'statefulComponent',
+  FUNCTIONAL_COMPONENT: 'functionalComponent',
+};
+
 function createVNode(type, props, children) {
+  const shapeFlag = isString(type)
+    ? ShapeFlags.ELEMENT
+    : isObject(type)
+    ? ShapeFlags.STATEFUL_COMPONENT
+    : isFunction(type)
+    ? ShapeFlags.FUNCTIONAL_COMPONENT
+    : 0;
+  return createBaseVNode(type, props, children, shapeFlag);
+}
+
+function createBaseVNode(type, props, children, shapeFlag) {
   return {
     __v_isVNode: true,
     __v_skip: true,
@@ -450,6 +494,7 @@ function createVNode(type, props, children) {
     children,
     component: null,
     el: null,
+    shapeFlag,
   };
 }
 
