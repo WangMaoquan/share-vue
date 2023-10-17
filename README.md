@@ -21,7 +21,7 @@
 
 - [x] renderer
 - [x] createApp
-- [ ] h
+- [x] h
 - [ ] defineComponent
 - [ ] scheduler
 - [ ] watch
