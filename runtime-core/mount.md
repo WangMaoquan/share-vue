@@ -154,3 +154,27 @@ const mountElement = (vnode, container, anchor /** */) => {
 4. 将真实 `DOM` 插入到页面
 
 #### mountChildren
+
+其实也就是对 `children` 中的每一项做 `patch`
+
+```typescript
+const mountChildren = (children, container, anchor) => {
+  for (let i = 0; i < children.length; i++) {
+    patch(null, children[i], contaier, anchor);
+  }
+};
+```
+
+##### mount element
+
+`vue` 怎么挂载 `element` 的流程我们已经熟悉一遍, 我们回顾下
+
+1. `app.mount` 需要兼容不同平台, 也即是我们需要获取不同平台的 `container`, 所以需要把 原本的 `mount` 包一层
+2. `mount` 其实就是调用 `render` 方法去处理
+3. `render` 通过传入的第一个参数判断是 `patch` 还是 `unmount`
+4. `patch` 主要做的就是 根据 `vnode` 的 `type, shapeFlag` 来调用处理不同类的组件
+5. `processElement` 是处理 `element` 的方法, 根据第一个参数 `n1` 判断是 `mount(挂载)` 还是 `patch(更新)`
+6. `mountElement` 是挂载 `element` 的方法, 思路其实很明确, 调用 `rendererOptions.createElement` 创建我们的真实 `DOM`, 然后调用`mountChildren` 挂载子节点, 然后调用 `hostPatchProp` 处理属性, 最后调用 `hostInsert` 将完成的 `DOM` 插入到页面
+7. `mountChildren` 挂载子节点, 本质就是让 `children` 每一项 调用 `patch`
+
+#### patchElement

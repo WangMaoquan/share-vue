@@ -25,7 +25,7 @@
 - [ ] defineComponent
 - [ ] scheduler
 - [ ] watch
-- [ ] element mount
+- [x] element mount
 - [ ] component mount
 - [ ] element update
 - [ ] component update
