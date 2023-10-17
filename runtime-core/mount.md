@@ -98,3 +98,59 @@ const patch: PatchFn = (n1, n2, container, anchor /** */) => {
 `patch` 干得事情就是 `分发处理`, 调用 `各个类型的` 方法去处理, 这里也用到 `位运算`, 我们先看看 怎么处理 `ELEMENT`
 
 ### processElement
+
+```typescript
+const processElement = (n1, n2, container, anchor) => {
+  if (n1 == null) {
+    // mount
+  } else {
+    // update
+  }
+};
+```
+
+存在 `n1` 就是挂载, 否则就是 更新
+
+#### mountElement
+
+挂载元素也就是挂载真实 `DOM` 是不是就需要用到我们的 `rendererOptions` 中的方法了
+
+```typescript
+const {
+  createElement: hostCreateElement,
+  patchProp: hostPatchProp,
+  insert: hostInsert,
+  setElementText: hostSetElementText,
+} = rendererOptions;
+
+const mountElement = (vnode, container, anchor /** */) => {
+  let el;
+  const { type, props, sharpFlag } = vnode;
+  // 这里的 el 其实就是真实 DOM 了
+  el = vnode.el = hostCreateElement(vnode.type, props);
+
+  if (sharpFlag & SharpFlags.TEXT_CHILDREN) {
+    // 处理文本的子节点 如 `<div>123</div>`
+    hostSetElementText(el, vnode.children);
+  } else if (sharpFlag & SharpFlags.ARRAY_CHILDREN) {
+    //  处理数组子节点 如 `<div><p>1</p><p>2</p><div>`
+    mountChildren(vnode.children, el);
+  }
+
+  if (props) {
+    for (const key in props) {
+      hostPatchProp(el, key, props[key] /** */);
+    }
+  }
+  /** vnodeHook, 处理 transition  */
+  hostInsert(el, contaier, anchor);
+  /** call */
+};
+```
+
+1. 创建对应的真实 `DOM`
+2. 处理子节点
+3. 处理 `props`
+4. 将真实 `DOM` 插入到页面
+
+#### mountChildren
