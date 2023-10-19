@@ -192,3 +192,45 @@ const processComponent = (n1, n2, container, anchor /** */) => {
 ```
 
 #### mountComponent
+
+组件我们需要先转换成 `vnode` 再变成真实 `DOM`, 这里我暂时不提 `template模板` 我们使用 `setup` 返回一个 `render` 方法, 或者使用 `optionsApi` 的 `render` 属性, 大致的思路其实就是创建 `组件instance`, 然后为 `instance.render` 赋值, 最后调用, 拿到组件的`vnode`, 然后进行 `patch`, 大概思路应该是这样的, 下面我们进入 `mountComponent`
+
+```typescript
+const mountComponent = (initialVNode, contaier, anchor /** */) => {
+  // 生成 instance
+  const instance = (initialVNode.component =
+    createComponentInstance(initialVNode));
+
+  //  compositionApi 取出 setup, optionsApi 取出 render
+  const { setup, render: optionRender } = instance.type;
+
+  instance.render = setup() || render;
+
+  const componentUpdateFn = () => {
+    if (!instance.isMounted) {
+      // mount
+      const subTree = (instance.subTree = instance.render());
+
+      patch(null, subTree, contaier, anchor);
+    } else {
+      //  update
+      const nextTree = instance.render();
+      const prevTree = instance.subTree;
+      instance.subTree = nextTree;
+      patch(prevTree, nextTree, contaier, anchor);
+      instance.isMounted = true;
+    }
+  };
+  const effect = (instance.effect = new ReactiveEffect(componentUpdateFn));
+
+  const update = (instance.update = () => effect.run());
+
+  update();
+};
+```
+
+简单实现的思路就是上面的代码, 当然后还省略很多处理的细节, 我们的关注点其实是 `componentUpdateFn`, 这是组件的 `挂载/更新` 方法, 因为需要被收集依赖 所以用到了 `ReactiveEffect`
+
+另外细节的方法, 我后面会列出来, 下面我们看看组件实例上都有啥
+
+#### createComponentInstance
