@@ -177,4 +177,18 @@ const mountChildren = (children, container, anchor) => {
 6. `mountElement` 是挂载 `element` 的方法, 思路其实很明确, 调用 `rendererOptions.createElement` 创建我们的真实 `DOM`, 然后调用`mountChildren` 挂载子节点, 然后调用 `hostPatchProp` 处理属性, 最后调用 `hostInsert` 将完成的 `DOM` 插入到页面
 7. `mountChildren` 挂载子节点, 本质就是让 `children` 每一项 调用 `patch`
 
-#### patchElement
+### processComponent
+
+处理 `sharpFlags` 为 `component` 的 `vnode`
+
+```typescript
+const processComponent = (n1, n2, container, anchor /** */) => {
+  if (n1 == null) {
+    // mountComponent
+  } else {
+    // updateComponent
+  }
+};
+```
+
+#### mountComponent
