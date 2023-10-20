@@ -198,8 +198,10 @@ const processComponent = (n1, n2, container, anchor /** */) => {
 ```typescript
 const mountComponent = (initialVNode, contaier, anchor /** */) => {
   // 生成 instance
-  const instance = (initialVNode.component =
-    createComponentInstance(initialVNode));
+  const instance = (initialVNode.component = createComponentInstance(
+    initialVNode,
+    parent,
+  ));
 
   //  compositionApi 取出 setup, optionsApi 取出 render
   const { setup, render: optionRender } = instance.type;
@@ -234,3 +236,68 @@ const mountComponent = (initialVNode, contaier, anchor /** */) => {
 另外细节的方法, 我后面会列出来, 下面我们看看组件实例上都有啥
 
 #### createComponentInstance
+
+我们常用的几个 `instance` 上的属性或者方法
+
+- `parent`: 访问父级 `vnode`
+- `render`: 组件变成 `vnode` 的方法
+- `components`: 保存子组件
+- `directives`: 保存自定义的指令
+- `emit`: emit 方法
+- `props/data`: 状态
+- `isMounted`: 是否挂载
+- `isUnmounted`: 是否卸载
+- `isDeactivated`: 是否失活
+- `bc/c/bm/m/bu/u/bum/da/a`: 生命周期
+
+```typescript
+let uid = 0;
+export function createComponentInstance(vnode, parent) {
+  const type = vnode.type; // 对于 element 来说就是 tagName, 对于 component 来说就是 defineCompont 返回的对象
+  // 继承parent appContext
+  // 根组件的instance是不存在 parent 的 所以需要 vnode.appContext
+  const appContext =
+    (parent ? parent.appContext : vnode.appContext) || emptyAppContext;
+  const instance = {
+    uid: uid++,
+    vnode,
+    type,
+    parent,
+    appContext,
+    root,
+    subTree,
+    effect,
+    update,
+    render,
+    provides: parent ? parent.provides : Object.create(appContext.provides),
+    components: null,
+    directives: null,
+    propsOptions: normalizePropsOptions(type, appContext),
+    emitsOptions: normalizeEmitsOptions(type, appContext),
+    emit: null,
+    ctx: {},
+    data: {},
+    props: {},
+    slots: {},
+    isMounted: false,
+    isUnmounted: false,
+    isDeactivated: false,
+    bc: null,
+    c: null,
+    bm: null,
+    m: null,
+    bu: null,
+    u: null,
+    bum: null,
+    um: null,
+    da: null,
+    a: null,
+  };
+  instance.ctx = createDevRenderContext(instance);
+  instance.root = parent ? parent.root : instance;
+  instance.emit = emit.bind(null, instance);
+  return instance;
+}
+```
+
+看了 `instance` 上的一部分属性, 我们大概也可以知道我们常用的几个 `api` 大致是怎么去工作的了, 比如 `onMounted` 这样的方法, 最后肯定是将我们的回调 传入到 `instance.m` 对应的 属性里面保存, 最后在对应的时机去读取然后执行
