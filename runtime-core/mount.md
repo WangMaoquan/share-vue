@@ -203,11 +203,14 @@ const mountComponent = (initialVNode, contaier, anchor /** */) => {
     parent,
   ));
 
+  // setupComponent
   //  compositionApi 取出 setup, optionsApi 取出 render
   const { setup, render: optionRender } = instance.type;
 
+  // finishedComponent
   instance.render = setup() || render;
 
+  // setupRenderEffect
   const componentUpdateFn = () => {
     if (!instance.isMounted) {
       // mount
@@ -235,7 +238,7 @@ const mountComponent = (initialVNode, contaier, anchor /** */) => {
 
 另外细节的方法, 我后面会列出来, 下面我们看看组件实例上都有啥
 
-#### createComponentInstance
+##### createComponentInstance
 
 我们常用的几个 `instance` 上的属性或者方法
 
@@ -301,3 +304,43 @@ export function createComponentInstance(vnode, parent) {
 ```
 
 看了 `instance` 上的一部分属性, 我们大概也可以知道我们常用的几个 `api` 大致是怎么去工作的了, 比如 `onMounted` 这样的方法, 最后肯定是将我们的回调 传入到 `instance.m` 对应的 属性里面保存, 最后在对应的时机去读取然后执行
+
+后面我会简单说下 `normalizePropsOptions/normalizeEmitsOptions`, 针对的是 `props/emit` 主要做的肯定是统一化
+
+是不是还有疑问? 在 `2.x` 中访问 `this.$props` 怎么没看见 `$data` 这样的 `属性名` 呢? 其实实现很简单, 我们实际访问的应该是 `instance.data`, 怎么让访问 `$data` 到 `data` 呢? `defineProperty` 也就是 `createDevRenderContext` 这个方法
+
+```typescript
+function createDevRenderContext(instance) {
+  const target = {};
+  Object.defineProperty(target, '_', {
+    configurable: true,
+    enumerable: false,
+    get: () => instance,
+  });
+  Object.keys(publicPropertiesMap).forEach((key) => {
+    Object.defineProperty(target, key, {
+      configurable: true,
+      enumerable: false,
+      get: () => publicPropertiesMap[key](instance),
+      set: NOOP,
+    });
+  });
+  return target;
+}
+```
+
+很明显 `publicPropertiesMap` 就是方法 `$data` 那些属性
+
+```typescript
+const publicPropertiesMap = extend(Object.create(null), {
+  $: (i) => i,
+  $el: (i) => i.vnode.el,
+  $data: (i) => i.data,
+  $attrs: (i) => i.attrs,
+  $slots: (i) => i.slots,
+  $parent: (i) => i.parnet,
+  $emit: (i) => i.emit,
+});
+```
+
+##### setupComponent
