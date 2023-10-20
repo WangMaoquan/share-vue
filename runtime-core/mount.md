@@ -344,3 +344,25 @@ const publicPropertiesMap = extend(Object.create(null), {
 ```
 
 ##### setupComponent
+
+生成组件的 `instance` 后, 就需要开始处理 `props, attrs, slots` 这些了, 也就是 `setupComponent`
+
+```typescript
+function setupComponent(instance) {
+  const { props, children } = instance.vnode;
+  initProps(instance, props);
+  initSlots(instance, children);
+  return instance.vnode.shapeFlag & SharpFlags.STATEFUL_COMPONENT
+    ? setupStatefulComponent(instance)
+    : undefined;
+}
+```
+
+主要做的就是
+
+1. 初始化 `props/slots`
+2. 是状态的组件的需要执行 `setupStatefulComponent`
+
+其实我们也可以理解到因为 `state` 还没有处理, 可以理解为就是执行 `setup` 方法
+
+##### setupStatefulComponent
