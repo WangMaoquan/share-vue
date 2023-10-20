@@ -282,6 +282,8 @@ export function createComponentInstance(vnode, parent) {
     data: {},
     props: {},
     slots: {},
+    setupState: {},
+    setupContext: {}
     isMounted: false,
     isUnmounted: false,
     isDeactivated: false,
@@ -387,3 +389,22 @@ function setupStatefulComponent(instance) {
 然后调用处理 `setupResult` 的方法 `handleSetupResult`
 
 ##### handleSetupResult
+
+`setupResult` 我们希望的是要么返回一个对象作为 `state`, 要么返回一个方法作为 `render`
+
+```typescript
+function handleSetupResult(instance, setupResult) {
+  if (isFunction(setupResult)) {
+    instance.render = setupResult;
+  } else if (isObject(setupResult)) {
+    // proxyRefs 是不是很熟, 访问 ref 不用 .value
+    instance.setupState = proxyRefs(setupState);
+    exposeSetupStateOnRenderContext(instance);
+  }
+  finishedComponent(instance);
+}
+```
+
+为 `instance.render/setupState` 赋值完后, 调用的是 `finishedComponent`, 下面我们看看 `finishedComponent` 做了啥
+
+##### finishedComponent
