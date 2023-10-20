@@ -366,3 +366,24 @@ function setupComponent(instance) {
 其实我们也可以理解到因为 `state` 还没有处理, 可以理解为就是执行 `setup` 方法
 
 ##### setupStatefulComponent
+
+```typescript
+function setupStatefulComponent(instance) {
+  const Component = instance.type;
+  const { setup } = Component;
+  if (setup) {
+    const setupContext = (instance.setupContext =
+      setup.length > 1 ? createSetupContext(instance) : null);
+    const setupResult = setup(instance.props, setupContext);
+    handleSetupResult(instance, setupResult);
+  } else {
+    finishedComponent(instance);
+  }
+}
+```
+
+主要的逻辑其实就是存在 `setup` 执行, 不存在就执行 `finishedComponent`
+我们都知道 `setup` 的两个参数是 `props, context`, 这里通过 `function.length` 来判断需不需要传入 `context`,
+然后调用处理 `setupResult` 的方法 `handleSetupResult`
+
+##### handleSetupResult
