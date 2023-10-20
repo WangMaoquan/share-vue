@@ -408,3 +408,31 @@ function handleSetupResult(instance, setupResult) {
 为 `instance.render/setupState` 赋值完后, 调用的是 `finishedComponent`, 下面我们看看 `finishedComponent` 做了啥
 
 ##### finishedComponent
+
+想想还有哪些情况是没有处理的
+
+1. 存在 `setupResult` 不作为 `render`, 作为的是 `setupState`, 所以需要处理 `render`
+2. 处理 `optionsApi`
+
+是不是还是没有看见处理 `optionsApi` 的地方, 想想 `optionsApi` 里面有啥 `beforeCreate/created` 这两个钩子是吧, 官方推出的声明周期执行 `setup` 其实是在 `beforeCreate/created` 前面的, 这样是不是就可以理解了呢?
+
+```typescript
+function finishedComponent(instance) {
+  const Component = instance.type;
+
+  if (!instance.render) {
+    // if (!Componet.render) {
+    //   // todo template complie
+    // }
+    instance.render = Component.render || NOOP;
+  }
+
+  applyOptions(instance);
+}
+```
+
+这时会检查 `instance.render`是否存在, 不存在就使用 `Component.render`, 所以现在知道 `setup` 作为 `render` 的优先级是比 `optionsApi.render` 优先级高了吧, 这里其实比模版的优先级都高, 因为 模版编译生成的`render`会赋值给 `Component.render`
+
+最后处理 `data, methods` 这些的就应该在 `applyOptions` 中处理了
+
+##### applyOptions
