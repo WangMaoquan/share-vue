@@ -373,6 +373,12 @@ function setupComponent(instance) {
 function setupStatefulComponent(instance) {
   const Component = instance.type;
   const { setup } = Component;
+  // accessCache 读取缓存
+  instance.accessCache = Object.create(null);
+  // 可以理解为 2.x 中的 this
+  instance.proxy = markRaw(
+    new Proxy(instance.ctx, PublicInstanceProxyHandlers),
+  );
   if (setup) {
     const setupContext = (instance.setupContext =
       setup.length > 1 ? createSetupContext(instance) : null);
@@ -436,3 +442,73 @@ function finishedComponent(instance) {
 最后处理 `data, methods` 这些的就应该在 `applyOptions` 中处理了
 
 ##### applyOptions
+
+```typescript
+function applyOptions(instance) {
+  const options = instance.type; // 我这里没有处理 mixins
+  const publicThis = instance.proxy; // 获取 this
+  const ctx = instance.ctx;
+
+  if (options.beforeCreate) {
+    beforeCreate.call(publicThis);
+  }
+
+  const {
+    data: dataOptions,
+    computed: computedOptions,
+    methods,
+    watch: watchOptions,
+    provide: provideOptions,
+    inject: injectOptions,
+    created,
+    beforeMount,
+    mounted,
+    beforeUpdate,
+    updated,
+    activated,
+    deactivated,
+    beforeDestroy,
+    beforeUnmount,
+    destroyed,
+    unmounted,
+    render,
+    expose,
+    components,
+    directives,
+    filters,
+  } = options;
+
+  if (injectOptions) {
+    resolveInjectOptions(injectOptions, ctx);
+  }
+  if (methods) {
+    for (const key in methods) {
+      const handler = methods[key];
+      if (isFunction(handler)) {
+        Object.defineProperty(ctx, key, {
+          configurable: true,
+          enumerable: true,
+          writable: true,
+          value: handler.bind(publicThis),
+        });
+      }
+    }
+  }
+  if (dataOptions) {
+    if (isFunction(dataOptions)) {
+      const data = dataOptions.call(publicThis, publicThis);
+      if (isObject(data)) {
+        instance.data = reactive(data);
+        for (const key in data) {
+          Object.defineProperty(ctx, key, {
+            configurable: true,
+            enumerable: true,
+            get: () => data[key],
+            set: NOOP,
+          });
+        }
+      }
+    }
+  }
+}
+```
