@@ -624,3 +624,57 @@ if (computedOptions) {
   }
 }
 ```
+
+###### watchOptions
+
+`vue2.x` watch 用法
+
+1. `{ dataKey: func }`
+2. `{ key: methodsKey }`
+3. `{ key: { handler: func, ... otherWatchOptions } }`
+4. `{ key: { handler: methodsKey }, ... otherWatchOptions }`
+5. `{ key: [methodsKey, func, { handler: methodsKey }, ... otherWatchOptions }] }`
+6. `{pathStr: func}`
+
+```typescript
+if (watchOptions) {
+  for (const key in watchOptions) {
+    createWatcher(watchOptions[key], ctx, publicThis, key);
+  }
+}
+
+function createWatcher(raw, ctx, publicThis, key) {
+  const getter = key.includes('.')
+    ? createPathGetter(publicThis, key) // 处理 `pathStr`
+    : () => publicThis[key];
+  if (isString(raw)) {
+    // 第二种用法
+    const handler = ctx[raw];
+    watch(getter, handler);
+  } else if (isFunction(raw)) {
+    // 第一种用法
+    watch(getter, raw.bind(publicThis));
+  } else if (isObject(raw)) {
+    if (isArray(raw)) {
+      // 第五种
+      raw.forEach((r) => createWatcher(r, ctx, publicThis, key));
+    } else {
+      // 第三种 和 第四种
+      const handler = isFunction(raw.handler) > raw.handler.bind(publicThis) : ctx[raw.handler]
+      watch(getter, handler, raw)
+    }
+  }
+}
+
+// "a.b.c" => ctx[a][b][c]
+function createPathGetter(ctx, path) {
+  const segments = path.split('.');
+  return () => {
+    let cur = ctx;
+    for (let i = 0; i < segments.length; i++) {
+      cur = cur[segments[i]];
+    }
+    return cur;
+  };
+}
+```
