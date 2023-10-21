@@ -561,3 +561,66 @@ function normalizeInject(raw) {
   return raw
 }
 ```
+
+###### dataOptions
+
+因为 `data` 方法返回的是一个对象, 所以我们需要用 `reactive` 处理, 然后再 使 `this.xx` 访问到 `data.xx`
+
+```typescript
+if (dataOptions) {
+  if (isFunction(dataOptions)) {
+    // 注意 this
+    const data = dataOptions.call(publicThis, publicThis);
+    if (isObject(data)) {
+      // 赋值给 instance.data
+      instance.data = reactive(data);
+      for (const key in data) {
+        Object.defineProperty(ctx, key, {
+          configurable: true,
+          enumerable: true,
+          get: () => data[key],
+          set: NOOP,
+        });
+      }
+    }
+  }
+}
+```
+
+###### computedOptions
+
+`vue2.x` 中的 `computed` 用法:
+
+1. `{key: (){ return this.xxx }}`
+2. `{key: { get(){}, set(){} } }`
+
+`vue3.x` 中
+
+1. `computed({get, set})`
+2. `computed(getterFn)`
+
+```typescript
+if (computedOptions) {
+  for (const key in computedOptions) {
+    const opt = computedOptions[key];
+    const get = isFunction(opt)
+      ? opt.bind(publicThis, publicThis)
+      : isFunction(opt.get)
+      ? opt.get.bind(publicThis, publicThis)
+      : NOOP;
+    const set =
+      !isFunction(opt) && isFunction(opt.set) ? opt.set.bind(publicThis) : NOOP;
+
+    const c = computed({
+      get,
+      set,
+    });
+    Object.defineProperty(ctx, key, {
+      enumerable: true,
+      configurable: true,
+      get: () => c.value,
+      set: (v) => (c.value = v),
+    });
+  }
+}
+```
