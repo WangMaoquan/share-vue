@@ -592,4 +592,18 @@ function setupRenderEffect(instance, initialVNode, contaier, anchor) {
 }
 ```
 
-## 总结
+# 总结
+
+主要的步骤大概如下:
+
+1. 创建组件 `instance`
+2. 执行 `setupComponent`, 给 `instance` 的一些属性赋值, 比如 `setupState, data`
+   1. 初始化 `props`, 'slots'
+   2. 判断是否是 `STATEFUL_COMPONENT`, 是执行 `setupStatefulComponent` 否则执行 `finishComponent`
+   3. `setupStatefulComponent` 主要做的就是初始化 `instance.proxy` 这个作为 `this`,通过 `defineProperty`; 调用 `exposePropsOnRenderContext` 让 `ctx.xx `能访问 `props.xx`; 然后执行 `setup` 方法, 获取 `setupResult` 然后执行 `handleSetupResult` 方法, 这里执行 `setup` 时 通过 `setup.length` 通过判断定义的形参数量来决定是否创建 `context`
+      1. `handleSetupResult` 主要做的就是判断 `setupResult` 来为 `instance.render` / `instance.setupState` 赋值, 赋值 `setupState`时, 通过 `exposeSetupStateOnRenderContext` 实现 `ctx.xx` 访问 `setupState.xx`
+      2. 最后执行 `finishComponent`
+   4. `finishComponent` 主要做的就是 校验 `render`, 然后调用 `appOptions` 处理 `optionsApi`
+3. 然后调用 `setupRenderEffect` 挂载
+
+
