@@ -478,9 +478,8 @@ function applyOptions(instance) {
     filters,
   } = options;
 
-  if (injectOptions) {
-    resolveInjectOptions(injectOptions, ctx);
-  }
+  // 处理 inject
+  // 处理 method 做的只有绑定this 和 能让 this.xx 访问到 methods.xx
   if (methods) {
     for (const key in methods) {
       const handler = methods[key];
@@ -494,46 +493,71 @@ function applyOptions(instance) {
       }
     }
   }
-  if (dataOptions) {
-    if (isFunction(dataOptions)) {
-      const data = dataOptions.call(publicThis, publicThis);
-      if (isObject(data)) {
-        instance.data = reactive(data);
-        for (const key in data) {
-          Object.defineProperty(ctx, key, {
-            configurable: true,
-            enumerable: true,
-            get: () => data[key],
-            set: NOOP,
-          });
-        }
-      }
-    }
-  }
-  if (computedOptions) {
-    for (const key in computedOptions) {
-      const opt = computedOptions[key];
-      const get = isFunction(opt)
-        ? opt.bind(publicThis, publicThis)
-        : isFunction(opt.get)
-        ? opt.get.bind(publicThis, publicThis)
-        : NOOP;
-      const set =
-        !isFunction(opt) && isFunction(opt.set)
-          ? opt.set.bind(publicThis)
-          : NOOP;
+  // 处理 data
+  // 处理 computed
+  // 处理 watch
+}
+```
 
-      const c = computed({
-        get,
-        set,
-      });
+###### injectOptions
+
+先复习下 `vue2.x` 中 `inject` 用法:
+
+1. `inject: ["name"]`
+2. `inject: { key }`
+3. inject: {key: { from: 'key', default: 'defaultKey' }}`
+
+而 `vue3.x` 的 `inject` 用法:
+
+1. `inject(key, defaultValue)`
+2. `inject(key)`
+3. `inject(key, () => defaultValue, true)`
+
+```typescript
+if (injectOptions) {
+  resolveInjectOptions(injectOptions, ctx);
+}
+function resolveInjectOptions(injectOptions, ctx) {
+  if (isArray(injectOptions)) {
+    // ['key'] => {'key': key} 对应用法第一种
+    injectOptions = normalizeInject(injectOptions);
+  }
+  for (const key in injectOptions) {
+    const opt = injectOptions[key];
+    let injected;
+    if (isObject(opt)) {
+      // 对应用法第三种
+      if ('default' in opt) {
+        injected = inject(opt.from || key, opt,default)
+      } else {
+        injected = inject(opt.from || key)
+      }
+    } else {
+      // 对应用法第二种
+      injected = inject(opt)
+    }
+    if (isRef(injected)) {
       Object.defineProperty(ctx, key, {
         enumerable: true,
         configurable: true,
-        get: () => c.value,
-        set: (v) => (c.value = v),
-      });
+        get: () => injected.value,
+        set: v => (injected.value = v)
+      })
+    } else {
+      ctx[key] = injected
     }
   }
+}
+
+// 就是数组转换成对象
+function normalizeInject(raw) {
+  if (isArray(raw)) {
+    const res = {};
+    for(let i = 0; i< raw.length; i++) {
+      res[raw[i]] = raw[i]
+    }
+    return res
+  }
+  return raw
 }
 ```
