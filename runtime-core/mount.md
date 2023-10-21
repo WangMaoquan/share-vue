@@ -510,5 +510,30 @@ function applyOptions(instance) {
       }
     }
   }
+  if (computedOptions) {
+    for (const key in computedOptions) {
+      const opt = computedOptions[key];
+      const get = isFunction(opt)
+        ? opt.bind(publicThis, publicThis)
+        : isFunction(opt.get)
+        ? opt.get.bind(publicThis, publicThis)
+        : NOOP;
+      const set =
+        !isFunction(opt) && isFunction(opt.set)
+          ? opt.set.bind(publicThis)
+          : NOOP;
+
+      const c = computed({
+        get,
+        set,
+      });
+      Object.defineProperty(ctx, key, {
+        enumerable: true,
+        configurable: true,
+        get: () => c.value,
+        set: (v) => (c.value = v),
+      });
+    }
+  }
 }
 ```
