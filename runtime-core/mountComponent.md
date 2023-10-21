@@ -562,3 +562,34 @@ function createPathGetter(ctx, path) {
 ```
 
 ### setupRenderEffect
+
+```typescript
+function setupRenderEffect(instance, initialVNode, contaier, anchor) {
+  const componentUpdateFn = () => {
+    if (!instance.isMounted) {
+      const { bm, m } = instance;
+      if (bm) {
+        // 调用beforeMount
+        bm.forEach((fn) => fn());
+      }
+      const subTree = (instance.subTree = instance.render());
+      patch(null, subTree, container, anchor);
+      initialVNode.el = subTree.el;
+      if (m) {
+        // 调用 mounted
+        m.forEach((fn) => fn());
+      }
+      instance.isMounted = true;
+    } else {
+      // update
+    }
+  };
+
+  const effect = (instance.effect = new ReactiveEffect(componentUpdateFn));
+  const update = (instance.update = () => effect.run());
+
+  update();
+}
+```
+
+## 总结
