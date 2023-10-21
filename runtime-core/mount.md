@@ -547,6 +547,16 @@ function applyOptions(instance) {
       instance.exposed = {};
     }
   }
+  // 处理render
+  if (render && instance.render === NOOP) {
+    instance.render = render;
+  }
+  // 处理 子组件
+  components && (instance.components = components);
+  // 处理 指令
+  directives && (instance.directives = directives);
+  // 处理 fliter
+  filters && (instance.filters = filters);
 }
 ```
 
