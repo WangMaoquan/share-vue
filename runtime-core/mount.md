@@ -496,6 +496,57 @@ function applyOptions(instance) {
   // 处理 data
   // 处理 computed
   // 处理 watch
+  // 处理 provide
+  if (provideOptions) {
+    /**
+     * 1. provide: {}
+     * 2. provide: () => {}
+     */
+    const provides = isFunction(provideOptions)
+      ? provideOptions.call(publicThis)
+      : provideOptions;
+    Reflect.ownKeys(provides).forEach((key) => {
+      provide(key, provides[key]);
+    });
+  }
+  if (created) {
+    created.call(publicThis);
+  }
+
+  // 注册 生命周期钩子
+  function registerLifecycleHook(
+    register: Function,
+    hook?: Function | Function[],
+  ) {
+    if (isArray(hook)) {
+      hook.forEach((_hook) => register(_hook.bind(publicThis)));
+    } else if (hook) {
+      register(hook.bind(publicThis));
+    }
+  }
+  registerLifecycleHook(onBeforeMount, beforeMount);
+  registerLifecycleHook(onMounted, mounted);
+  registerLifecycleHook(onBeforeUpdate, beforeUpdate);
+  registerLifecycleHook(onUpdated, updated);
+  registerLifecycleHook(onActivated, activated);
+  registerLifecycleHook(onDeactivated, deactivated);
+  registerLifecycleHook(onBeforeUnmount, beforeUnmount);
+  registerLifecycleHook(onUnmounted, unmounted);
+
+  // 处理 expose
+  if (isArray(expose)) {
+    if (expose.length) {
+      const exposed = instance.exposed || (instance.exposed = {});
+      expose.forEach((key) => {
+        Object.defineProperty(exposed, key, {
+          get: () => publicThis[key],
+          set: (val) => (publicThis[key] = val),
+        });
+      });
+    } else if (!instance.exposed) {
+      instance.exposed = {};
+    }
+  }
 }
 ```
 
